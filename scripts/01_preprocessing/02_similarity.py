@@ -150,7 +150,7 @@ def run_mirus_genome_ani(records, cfg, connect):
         if not executable:
             raise SystemExit(
                 "skani is required for the Mirus genome ANI/AF split: "
-                "conda install -n GO_holdout -c conda-forge -c bioconda 'skani>=0.3,<0.4'"
+                "conda install -n GOholdout -c conda-forge -c bioconda 'skani>=0.3,<0.4'"
             )
         ani_cutoff = 100.0 * float(cfg["ani"])
         af_cutoff = 100.0 * float(cfg["aligned_fraction_shorter"])

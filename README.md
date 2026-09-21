@@ -2,8 +2,13 @@
 
 이 프로젝트는 보유한 라벨 데이터 전체를 먼저 `train 80% / validation 10% / inference 10%`로 고정한 뒤, GenomeOcean main 모델과 sub 모델을 각각 fine-tuning하고 마지막 10%에서 평가한다.
 
-- main: `0=Cellular`, `1=NCLDV/Mirus`, `2=Other viruses` (현재 class 2 입력은 PHAGE snapshot만)
-- sub: `0=NCLDV`, `1=Mirus`
+- main: `0=Cellular`, `1=Viral`
+  - Cellular: ARC, BAC, EUK, MITO, PLASTID
+  - Viral: NCLDV, EVE NCLDV, Mirus, EVE Mirus, PHAGE
+- sub: `0=NCLDV`, `1=Mirus`, `2=PHAGE`
+  - NCLDV: 일반 NCLDV + EVE NCLDV
+  - Mirus: 일반 Mirus + EVE Mirus
+  - PHAGE: PHAGE snapshot
 - taxonomy: primary classification이 끝난 뒤 선택적으로 수행하는 secondary task
 
 - 원본 FASTA는 읽기 전용으로 사용한다. MetaVR DuckDB는 이 파이프라인에서 읽지 않는다.
@@ -76,16 +81,16 @@
 |---|---|---:|---|---|
 | ARC | `order_representatives_2026-09-03/fna/ARC__*.fna` | main 0 | genome | 172개 파일을 확인함 |
 | BAC | 같은 폴더의 `BAC__*.fna` | main 0 | genome | 1,991개 파일을 확인함 |
-| EUK | 같은 폴더의 `EUK__*.fna` | main 0 | genome | 130개 입력; EVE host 제외 목록이 제공되면 해당 genome을 quarantine |
+| EUK | 같은 폴더의 `EUK__*.fna` | main 0 | genome | EVE/PHAGE 숙주와 겹치는 genome은 자동 quarantine |
 | MITO | `organelle_host_balanced_2026-09-10/fna/MITO__*.fna` | main 0 | genome | 677개, 77,598,909 bp; 숙주 분류군 균형을 맞춘 미토콘드리아 snapshot |
 | PLASTID | 같은 폴더의 `PLASTID__*.fna` | main 0 | genome | 258개, 42,785,928 bp; 숙주 분류군 균형을 맞춘 색소체 snapshot |
 | NCLDV | `gv-exports/NCLDV.fna` | main 1, sub 0 | **genus** | usable genus가 없으면 genome으로 fallback |
 | MIRUS | `gv-exports/MIRUS.fna` | main 1, sub 1 | **skani ANI 95% + AF 85% group** | 모든 contig를 genome별로 묶어 비교 |
 | EVE NCLDV | `eve_candidates_derep95.fna` 중 `EVE-NCLDV__` | main 1, sub 0 | host assembly | 같은 숙주의 EVE locus를 함께 이동 |
 | EVE Mirus | `eve_candidates_derep95.fna` 중 `EVE-MIRUS__` | main 1, sub 1 | host assembly | 같은 숙주의 EVE locus를 함께 이동 |
-| PHAGE | `metavr_phage_genera_all_quality_2026-09-04/fna` | main 2 | vOTU | 이미 ICTV genus당 최선 uViG 1개로 선별된 2,612개 snapshot |
+| PHAGE | `metavr_phage_genera_all_quality_2026-09-04/fna` | main 1, sub 2 | vOTU | 이미 ICTV genus당 최선 uViG 1개로 선별된 2,612개 snapshot |
 
-EUK의 EVE-host 사전 제외 목록 `data/quarantine/eve_host_cellular_overlap.tsv`는 현재 없으므로, 목록 기반 제외는 아직 적용되지 않는다. 전체 source 유사도 검사는 전처리 2단계에서 별도로 수행한다.
+ARC/BAC/EUK/MITO/PLASTID 중 EVE NCLDV, EVE Mirus 또는 PHAGE의 숙주와 겹치는 genome은 전처리 1단계에서 자동 quarantine한다. 원본 `.fna`를 삭제하거나 이동하지 않으며, 해당 genome의 모든 contig를 학습·validation·inference에서 제외하고 `data/quarantine/cellular_host_overlap.tsv`에 원본 경로와 근거를 기록한다.
 
 ### 각 데이터를 어떻게 읽는가
 
@@ -117,7 +122,7 @@ PHAGE snapshot은 MetaVR에서 선별된 기존 `.fna` 파일 집합이다. 과�
 
 여기서 `PHAGE`는 파일 prefix일 뿐 순수 bacteriophage라는 뜻은 아니다. 이 snapshot에는
 Bacteria host가 알려진 1,117개뿐 아니라 Eukaryota host 311개, Archaea host 56개와 host가
-불명확한 1,128개도 들어 있다. 따라서 class 2는 모든 바이러스의 대표 표본이 아니라
+불명확한 1,128개도 들어 있다. 따라서 sub의 PHAGE class는 모든 바이러스의 대표 표본이 아니라
 이 선별된 PHAGE snapshot에 한정된다. 다른 종류의 바이러스에 대한 일반화 성능은
 이번 holdout만으로 주장할 수 없다.
 
@@ -133,6 +138,7 @@ Bacteria host가 알려진 1,117개뿐 아니라 Eukaryota host 311개, Archaea 
 
 ```text
 원본 record 확인
+  → 바이러스 숙주와 겹치는 Cellular genome 전체 quarantine
   → 함께 움직여야 할 group 정의
   → exact/near-similarity group 연결
   → group 전체를 train/validation/inference 중 하나에 배정
@@ -149,13 +155,24 @@ chunk를 먼저 무작위로 섞으면 같은 genome의 거의 동일한 조각�
 - EVE NCLDV/Mirus: 같은 host assembly의 locus를 모두 한 split에 둔다.
 - PHAGE: 같은 `vOTU`를 함께 둔다. vOTU는 서로 유사한 바이러스 서열 집단을 가리키는 ID다. vOTU가 없으면 `uvig`별 genome ID를 사용한다.
 
+### Cellular–바이러스 숙주 겹침 제거
+
+이 검사는 chunk를 만들기 전에 수행한다.
+
+- EVE NCLDV/EVE Mirus: EVE FASTA header의 숙주 assembly accession과 Cellular metadata/파일명의 accession을 정규화한 뒤 **exact accession**으로 비교한다.
+- PHAGE: PHAGE metadata의 `host_taxonomy`에서 species 이름을 읽고 Cellular metadata의 `species_name` 또는 `organism_name`과 **exact species**로 비교한다.
+- genus만 같거나 이름이 비어 있는 경우는 과도한 제거를 피하기 위해 일치로 처리하지 않는다.
+- 하나라도 일치하면 그 Cellular genome 파일의 모든 contig에 `cellular_genome_is_viral_host` quarantine 사유를 붙인다.
+
+현재 입력 snapshot을 검사하면 고유 Cellular genome 22개가 해당한다. 구성은 BAC 2개, EUK 19개, PLASTID 1개다. EVE assembly 일치는 고유 genome 18개이며, 일부는 EVE NCLDV와 EVE Mirus 양쪽에 일치한다. PHAGE host species 일치는 4개다. 이 개수는 원본 snapshot이 바뀌면 전처리 실행 시 자동으로 다시 계산된다.
+
 그 다음 모든 source의 5 kb audit fragment를 MMseqs2로 비교한다. 양방향 coverage 85% 이상, identity 95% 이상인 조각이나 exact/reverse-complement duplicate가 있으면 두 group을 하나의 similarity component로 연결한다. Mirus ANI/AF edge와 이 fragment edge를 모두 합치며, A-B, B-C가 연결되면 A-B-C 전체가 같은 split으로 간다. 서로 다른 label에서 이 정도로 유사한 서열이 나오면 어느 label이 맞는지 임의로 정하지 않고 양쪽 record를 quarantine한다.
 
 최종 component를 source와 main label별로 나눈 뒤, 각 그룹의 genome 수와 총 염기 수가 80/10/10에 가깝도록 deterministic하게 배정한다. 그래서 정확히 row 80/10/10은 아닐 수 있다. NCLDV genus처럼 큰 그룹을 자르지 않는 것이 작은 비율 오차보다 더 중요하다.
 
-### PHAGE(class 2)를 안전하게 split하는 방법
+### PHAGE(main 1, sub 2)를 안전하게 split하는 방법
 
-이미 선별된 PHAGE `.fna` 2,612개를 읽는다. NCLDV/Mirus phylum으로 표시된 record는 class 2 label 오염을 막기 위해 제외하고, 같은 vOTU는 함께 움직인다. vOTU가 없는 경우 genome ID를 사용한다. 그 후 다른 source와의 exact/near-similarity 검사 결과까지 합쳐 split한다. MetaVR DB 조회, 다른 바이러스 추출, PHAGE–MetaVR 중복 제거 단계는 없다.
+이미 선별된 PHAGE `.fna` 2,612개를 읽는다. NCLDV/Mirus phylum으로 표시된 record는 sub의 PHAGE label 오염을 막기 위해 제외하고, 같은 vOTU는 함께 움직인다. vOTU가 없는 경우 genome ID를 사용한다. 그 후 다른 source와의 exact/near-similarity 검사 결과까지 합쳐 split한다. MetaVR DB 조회, 다른 바이러스 추출, PHAGE–MetaVR 중복 제거 단계는 없다.
 
 ## 4. 전처리 단계와 생성 파일
 
@@ -170,6 +187,8 @@ chunk를 먼저 무작위로 섞으면 같은 genome의 거의 동일한 조각�
 - 길이, N 비율, forward 및 reverse-complement canonical SHA-256
 - 기본 split group과 quarantine 이유
 - 모든 입력 파일의 크기와 checksum
+
+같은 단계에서 EVE/PHAGE 숙주와 겹치는 Cellular genome을 먼저 찾고 `data/quarantine/cellular_host_overlap.tsv`를 만든다. 이 표에는 Cellular source, genome/file ID, 원본 경로, assembly accession, organism 이름, 일치한 viral source, 비교 방법과 비교값이 기록된다. quarantine 대상 genome도 raw manifest에는 추적 목적으로 남지만 `split=quarantine`이므로 chunk 파일에는 들어가지 않는다.
 
 MITO/PLASTID에서는 원본 `metadata.tsv`의 파일 목록과 FASTA 파일 목록도 비교한다. 그 외 `source_metadata.tsv`, `source_audit.tsv`, `selection.tsv`, `provenance.json`의 존재와 checksum도 입력 inventory에 남긴다. `data/manifests/source_summary.json`에서 source별 genome/record/염기 수를 볼 수 있다.
 
@@ -207,7 +226,7 @@ data/preprocessed/main/{train,validation,inference}.csv.gz
 data/preprocessed/sub/{train,validation,inference}.csv.gz
 ```
 
-sub 데이터는 main 예측 결과에서 고르는 것이 아니다. 원래 정답이 NCLDV, Mirus, EVE NCLDV, EVE Mirus인 **모든 eligible record**를 같은 master split에서 직접 가져온다.
+sub 데이터는 main 예측 결과에서 고르는 것이 아니다. 원래 정답 source가 NCLDV, EVE NCLDV, Mirus, EVE Mirus, PHAGE인 **모든 eligible record**를 같은 master holdout 배정에서 직접 가져온다. 즉 main이 어떤 결과를 내는지는 sub의 입력 선택에 영향을 주지 않는다.
 
 ### 4.5 `05_validate_preprocessed.py`
 
@@ -226,13 +245,15 @@ sub 데이터는 main 예측 결과에서 고르는 것이 아니다. 원래 정
 두 모델은 같은 GenomeOcean base model에서 시작하지만 서로 독립적으로 학습하고 각각 배포할 수 있다.
 
 ```text
-main dataset: ARC/BAC/EUK/MITO/PLASTID + NCLDV/Mirus/EVE + PHAGE(class 2)
-sub dataset : NCLDV + EVE NCLDV vs Mirus + EVE Mirus
+main dataset: Cellular(ARC/BAC/EUK/MITO/PLASTID) vs Viral(NCLDV/EVE NCLDV/Mirus/EVE Mirus/PHAGE)
+sub dataset : NCLDV(NCLDV/EVE NCLDV) vs Mirus(Mirus/EVE Mirus) vs PHAGE(PHAGE)
 ```
+
+main과 sub는 같은 원본 manifest와 누수 방지용 holdout 배정을 공유하지만, **서로 다른 데이터 파일과 모델로 독립 실행**된다. sub 학습·inference는 main의 예측 파일을 읽지 않는다. 따라서 main에서 Viral을 Cellular로 잘못 예측한 genome도 정답 source가 바이러스라면 sub holdout 데이터에는 정상적으로 포함된다.
 
 ### Loss
 
-main은 3-class cross-entropy, sub는 2-class cross-entropy를 쓴다. 쉽게 말해 정답 class의 확률이 높아지도록 벌점을 계산하는 일반적인 분류 loss다. label smoothing `0.05`를 적용해 모델이 한 class를 지나치게 100% 확신하는 것을 줄인다.
+main은 2-class cross-entropy, sub는 3-class cross-entropy를 쓴다. 쉽게 말해 정답 class의 확률이 높아지도록 벌점을 계산하는 일반적인 분류 loss다. label smoothing `0.05`를 적용해 모델이 한 class를 지나치게 100% 확신하는 것을 줄인다.
 
 긴 genome은 5 kb chunk가 많다는 이유만으로 학습을 지배할 수 있다. 이를 막기 위해 각 chunk weight를 대략 `chunk 길이 / 그 genome의 전체 길이`로 둔다. 한 genome의 chunk weight 합은 약 1이 된다. 여기에 train genome 수가 적은 class를 보완하는 완만한 `sqrt inverse class weight`를 곱한다. validation loss에도 같은 수식을 사용하지만 gradient 계산과 parameter update는 하지 않는다.
 
@@ -293,8 +314,9 @@ inference 10%는 모델, hyperparameter, threshold, temperature를 validation에
 - genome-level split-group bootstrap 95% CI: 서로 독립적이지 않은 chunk 대신 group을 재표집한 불확실성 범위
 
 main과 sub는 학습뿐 아니라 inference도 각각 따로 실행한다. main은 전체 main inference split에서
-3개 class를 평가하고, sub는 NCLDV/Mirus 데이터만 들어 있는 sub inference split에서 2개 class를
-평가한다. main 예측을 sub로 자동 전달하는 결합(cascade) 평가와 `end_to_end` 결과는 만들지 않는다.
+Cellular/Viral 2개 class를 평가한다. sub는 NCLDV/EVE NCLDV/Mirus/EVE Mirus/PHAGE가 들어 있는
+별도의 sub inference split에서 NCLDV/Mirus/PHAGE 3개 class를 평가한다. main 예측을 sub로 자동
+전달하는 결합(cascade) 평가와 `end_to_end` 결과는 만들지 않는다.
 
 ## 7. Taxonomy는 선택 사항
 
@@ -310,7 +332,7 @@ classification 결과와 taxonomy 결과는 별도로 보고한다. taxonomy 성
 
 ## 8. Conda 환경
 
-기존 `GO`는 PyTorch/GPU는 작동했지만 `transformers 4.51.3`과 `huggingface-hub 1.24.0`이 호환되지 않았다. 그래서 `GO`를 건드리지 않고 복제한 `GO_holdout`을 만들었으며 다음을 확인했다.
+기존 `GO`는 PyTorch/GPU는 작동했지만 `transformers 4.51.3`과 `huggingface-hub 1.24.0`이 호환되지 않았다. 그래서 `GO`를 건드리지 않고 복제한 `GOholdout`을 만들었으며 다음을 확인했다.
 
 - Python 3.11.15
 - PyTorch 2.8.0+cu128, BF16, CUDA GPU 연산
@@ -322,9 +344,9 @@ classification 결과와 taxonomy 결과는 별도로 보고한다. taxonomy 성
 현재 환경은 바로 사용할 수 있다. 다시 만들 때는 프로젝트에서 다음을 실행한다.
 
 ```bash
-conda create --name GO_holdout --clone GO --yes
-conda run -n GO_holdout python -m pip install -r requirement.txt
-conda install -n GO_holdout -c conda-forge -c bioconda \
+conda create --name GOholdout --clone GO --yes
+conda run -n GOholdout python -m pip install -r requirement.txt
+conda install -n GOholdout -c conda-forge -c bioconda \
   mmseqs2 "skani>=0.3,<0.4" --yes
 ```
 
@@ -332,13 +354,13 @@ conda install -n GO_holdout -c conda-forge -c bioconda \
 
 ## 9. 실행 방법
 
-먼저 프로젝트로 이동하고 `GO_holdout` 환경을 활성화한다. 이후 전처리, main 학습, sub 학습, inference를 필요한 시점에 각각 직접 실행한다.
+먼저 프로젝트로 이동하고 `GOholdout` 환경을 활성화한다. 이후 전처리, main 학습, sub 학습, inference를 필요한 시점에 각각 직접 실행한다.
 
 ### 9.1 프로젝트와 환경 준비
 
 ```bash
 cd /mnt/taskmaster1/scratch/hyejong/02_gv_genomeocean_holdout
-conda activate GO_holdout
+conda activate GOholdout
 CUDA_VISIBLE_DEVICES=0 python scripts/check_environment.py --gpu-check
 ```
 

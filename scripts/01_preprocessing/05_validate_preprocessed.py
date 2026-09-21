@@ -159,7 +159,7 @@ def main() -> int:
     try:
         reports = [validate_task(task) for task in tasks]
         passed = all(report["passed"] for report in reports)
-        # Main class 1과 sub는 동일 chunk/split인지 순서까지 확인한다.
+        # Main Viral(class 1) 전체와 독립 sub 데이터 전체가 동일 chunk/split인지 확인한다.
         shared_ok = True
         for split in SPLITS:
             digests = []

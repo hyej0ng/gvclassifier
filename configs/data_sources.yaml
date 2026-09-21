@@ -6,6 +6,16 @@ metadata:
   provisional_genome_taxonomy: /media/shared-expansion/db/gv-exports/old/genome_taxonomy.tsv
   provisional_usage: NCLDV_genus_split_grouping_only_not_taxonomy_training_target
 
+# Viral source의 숙주와 동일한 Cellular genome은 학습에 넣지 않는다.
+# EVE는 assembly accession, PHAGE는 metadata의 species 이름을 exact match한다.
+cellular_host_overlap_quarantine:
+  cellular_sources: [ARC, BAC, EUK, MITO, PLASTID]
+  eve_sources: [EVE_NCLDV, EVE_MIRUS]
+  phage_source: PHAGE
+  match_eve_by: exact_assembly_accession
+  match_phage_by: exact_host_species_name
+  output: data/quarantine/cellular_host_overlap.tsv
+
 sources:
   ARC:
     status: present
@@ -48,8 +58,7 @@ sources:
     sub_label: null
     record_type: cellular_genome
     split_key: genome_id_then_similarity_component
-    special_rule: quarantine_whole_genome_if_listed_in_optional_eve_host_exclusion_file
-    exclusion_list: data/quarantine/eve_host_cellular_overlap.tsv
+    special_rule: quarantine_whole_genome_if_it_matches_an_eve_or_phage_host
     metadata_flags_to_keep: [subsampled, subsample_target_bp, subsampling_method]
 
   MITO:
@@ -143,8 +152,8 @@ sources:
     header_pattern: "PHAGE__<uvig>|record_1|img_contig_oid=<source_contig_id>"
     metadata_join_key: filename
     taxonomy_priority: snapshot_metadata
-    main_label: 2
-    sub_label: null
+    main_label: 1
+    sub_label: 2
     record_type: uvig
     genome_id_field: uvig
     split_key: votu_then_similarity_component
@@ -156,7 +165,7 @@ sources:
       - prefix_PHAGE_also_contains_some_non_bacterial_host_viruses
 
 # Present in eve_candidates_derep95.fna but intentionally not enabled until its
-# role as class-2 hard negative is reviewed.
+# role as an additional viral subgroup is reviewed.
 disabled_sources:
   EVE_PPV:
     path: /media/shared-expansion/db/gv-exports/eve_candidates_derep95.fna

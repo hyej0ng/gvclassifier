@@ -14,8 +14,8 @@ def write_json(path, value):
     temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     temporary.replace(path)
 
-LABELS = {"main": ["Cellular", "NCLDV/Mirus", "Other viruses"],
-          "sub": ["NCLDV", "Mirus"]}
+LABELS = {"main": ["Cellular", "Viral"],
+          "sub": ["NCLDV", "Mirus", "PHAGE"]}
 
 
 def normalize_scores(scores):

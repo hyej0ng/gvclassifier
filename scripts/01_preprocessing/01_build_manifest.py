@@ -150,6 +150,14 @@ def fasta_records(path: Path) -> Iterator[tuple[str, str]]:
         if header is not None: yield header, "".join(parts)
 
 
+def fasta_headers(path: Path) -> Iterator[str]:
+    """Read only FASTA headers without materializing sequences."""
+    with open_text(path) as handle:
+        for raw_line in handle:
+            if raw_line.startswith(">"):
+                yield raw_line[1:].strip()
+
+
 DNA_TRANS = str.maketrans({"U": "T"})
 RC_TRANS = str.maketrans("ACGTN", "TGCAN")
 
@@ -250,14 +258,108 @@ def load_metadata(path: Path, key: str) -> dict[str, dict[str, str]]:
     return metadata
 
 
-def load_euk_exclusions(path: Path) -> set[str]:
-    if not path.exists():
-        return set()
-    return {
-        row["genome_id"]
-        for row in read_tsv(path)
-        if row.get("decision", "").lower() == "exclude"
-    }
+def canonical_accession(value: str) -> str:
+    """GCA_123.1, GCA-123-1처럼 표기만 다른 accession을 같은 값으로 만든다."""
+    return re.sub(r"[^A-Z0-9]", "", (value or "").upper())
+
+
+def canonical_taxon(value: str) -> str:
+    """대소문자와 반복 공백만 무시하고 taxon 이름 자체는 exact match한다."""
+    return " ".join((value or "").replace("_", " ").split()).casefold()
+
+
+def build_cellular_host_overlaps(data_config: dict) -> tuple[dict[tuple[str, str], set[str]], list[dict], list[Path]]:
+    """Find Cellular genomes that are exact EVE assemblies or exact PHAGE host species."""
+    policy = data_config["cellular_host_overlap_quarantine"]
+    sources = data_config["sources"]
+    inputs: list[Path] = []
+
+    # EVE-NCLDV/EVE-Mirus header에서 숙주 assembly accession을 읽는다.
+    eve_hosts: dict[str, Counter] = {}
+    eve_paths: dict[Path, dict[str, str]] = {}
+    for source in policy["eve_sources"]:
+        spec = sources[source]
+        path = project_path(spec["path"])
+        eve_paths.setdefault(path, {})[spec["selector_prefix"]] = source
+    for path, prefix_sources in eve_paths.items():
+        inputs.append(path)
+        for header in fasta_headers(path):
+            for prefix, source in prefix_sources.items():
+                if not header.startswith(prefix):
+                    continue
+                left = header.split("|", 1)[0]
+                raw_host = left[len(prefix):].removesuffix("_eves")
+                host = canonical_accession(raw_host)
+                if host:
+                    eve_hosts.setdefault(host, Counter())[source] += 1
+                break
+
+    # PHAGE metadata의 host_taxonomy 중 species rank만 사용한다. genus match는 과도한 제외를 막기 위해 쓰지 않는다.
+    phage_source = policy["phage_source"]
+    phage_meta_path = project_path(sources[phage_source]["metadata_path"])
+    inputs.append(phage_meta_path)
+    phage_hosts: Counter = Counter()
+    for row in read_tsv(phage_meta_path):
+        for part in (row.get("host_taxonomy") or "").split(";"):
+            if part.startswith("s__"):
+                species = canonical_taxon(part[3:])
+                if species:
+                    phage_hosts[species] += 1
+
+    by_file: dict[tuple[str, str], set[str]] = {}
+    report_rows: list[dict] = []
+    for source in policy["cellular_sources"]:
+        spec = sources[source]
+        files, metadata_by_filename = source_inputs(source, spec)
+        metadata_path = project_path(spec["metadata_path"])
+        inputs.append(metadata_path)
+        for fasta_path in files:
+            metadata = metadata_by_filename.get(fasta_path.name, {})
+            accessions = {
+                canonical_accession(metadata.get("assembly_accession", "")),
+                canonical_accession(fasta_path.stem.split("__", 1)[-1]),
+            } - {""}
+            taxa = {
+                canonical_taxon(metadata.get("species_name", "")),
+                canonical_taxon(metadata.get("organism_name", "")),
+            } - {""}
+            matches = []
+            for accession in sorted(accessions & set(eve_hosts)):
+                for viral_source, count in sorted(eve_hosts[accession].items()):
+                    matches.append((viral_source, "exact_assembly_accession", accession, count))
+            for species in sorted(taxa & set(phage_hosts)):
+                matches.append((phage_source, "exact_host_species_name", species, phage_hosts[species]))
+            if not matches:
+                continue
+            key = (source, fasta_path.name)
+            by_file[key] = {f"{viral_source}:{match_type}" for viral_source, match_type, _, _ in matches}
+            for viral_source, match_type, match_value, count in matches:
+                report_rows.append({
+                    "cellular_source": source,
+                    "cellular_genome_id": fasta_path.stem,
+                    "filename": fasta_path.name,
+                    "source_path": str(fasta_path),
+                    "assembly_accession": metadata.get("assembly_accession", ""),
+                    "organism_name": metadata.get("organism_name", "") or metadata.get("species_name", ""),
+                    "matched_viral_source": viral_source,
+                    "match_type": match_type,
+                    "match_value": match_value,
+                    "matching_viral_records": count,
+                })
+    return by_file, report_rows, inputs
+
+
+def write_host_overlap_report(path: Path, rows: list[dict]) -> None:
+    fields = ["cellular_source", "cellular_genome_id", "filename", "source_path", "assembly_accession",
+              "organism_name", "matched_viral_source", "match_type", "match_value",
+              "matching_viral_records"]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(sorted(rows, key=lambda row: (row["cellular_source"], row["filename"], row["matched_viral_source"])))
+    temporary.replace(path)
 
 
 def usable_genus(value: str) -> bool:
@@ -363,15 +465,17 @@ def main() -> int:
 
     gv_labels_path = project_path(data_config["metadata"]["gv_labels"])
     provisional_path = project_path(data_config["metadata"]["provisional_genome_taxonomy"])
-    euk_exclusion_path = PROJECT_ROOT / "data" / "quarantine" / "eve_host_cellular_overlap.tsv"
     gv_labels = load_gv_labels(gv_labels_path)
     # Majority-derived labels may conservatively join NCLDV split groups, but optional
     # taxonomy training later accepts only authoritative gv_labels/snapshot_metadata.
     provisional = load_provisional(provisional_path)
-    euk_exclusions = load_euk_exclusions(euk_exclusion_path)
     n_limit = float(prep_config["normalization"]["quarantine_if_n_fraction_above"])
 
-    metadata_inputs = [gv_labels_path, provisional_path, euk_exclusion_path]
+    host_overlap_by_file, host_overlap_rows, host_overlap_inputs = build_cellular_host_overlaps(data_config)
+    host_overlap_path = project_path(data_config["cellular_host_overlap_quarantine"]["output"])
+    write_host_overlap_report(host_overlap_path, host_overlap_rows)
+
+    metadata_inputs = [gv_labels_path, provisional_path, *host_overlap_inputs]
     source_files: list[Path] = [path for path in metadata_inputs if path.exists()]
     log_inputs: list[Path] = metadata_inputs.copy()
     for source in active_sources:
@@ -389,6 +493,13 @@ def main() -> int:
     tee = Tee(log_path)
     tee.start()
     started = print_run_header("preprocess/build_manifest", dict.fromkeys(log_inputs), OUTPUT)
+    overlap_genomes = len(host_overlap_by_file)
+    overlap_by_source = Counter(row["matched_viral_source"] for row in host_overlap_rows)
+    print(
+        f"[HOST OVERLAP] quarantined_cellular_genomes={overlap_genomes:,} | "
+        + " | ".join(f"{source}={count:,} matches" for source, count in sorted(overlap_by_source.items()))
+    )
+    print(f"[HOST OVERLAP] report={host_overlap_path}")
 
     counts = Counter()
     record_ids = set()
@@ -434,12 +545,13 @@ def main() -> int:
                         forward_hash, canonical_hash = sequence_hashes(sequence)
                         n_fraction = sequence.count("N") / len(sequence)
                         exclusion = ""
-                        if source == "EUK" and raw_genome in euk_exclusions:
-                            exclusion = "eve_host_cellular_overlap"
+                        host_matches = host_overlap_by_file.get((source, fasta_path.name), set())
+                        if host_matches:
+                            exclusion = "cellular_genome_is_viral_host:" + ",".join(sorted(host_matches))
                         elif n_fraction > n_limit:
                             exclusion = f"n_fraction_above_{n_limit}"
                         elif source == "PHAGE" and taxa.get("phylum") in {"Nucleocytoviricota", "Mirusviricota"}:
-                            exclusion = "positive_virus_in_negative_source"
+                            exclusion = "ncldv_or_mirus_in_phage_source"
                         votu = metadata.get("votu", "")
                         if source == "NCLDV" and usable_genus(taxa.get("genus", "")):
                             base_group = f"NCLDV_GENUS::{taxa['genus']}"

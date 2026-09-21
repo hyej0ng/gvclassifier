@@ -150,7 +150,7 @@ def main():
         if metadata["task"] != task or metadata["data"]["manifest_sha256"] != fingerprints["manifest_sha256"]:
             raise ValueError(f"The run is not a {task} model or uses a different split manifest")
         model_hash = file_sha256(run / "best.pt")
-        n_labels = 3 if task == "main" else 2
+        n_labels = int(metadata["training"][task]["num_labels"])
         tokenizer, model, repo_id, revision = load_finetuned_model(
             run, metadata, n_labels, device
         )
