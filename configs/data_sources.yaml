@@ -1,0 +1,164 @@
+version: 1
+
+metadata:
+  gv_labels: /media/shared-expansion/db/gv-exports/labels.tsv
+  gv_labels_usage: authoritative_exact_taxonomy_for_NCLDV_and_MIRUS_only
+  provisional_genome_taxonomy: /media/shared-expansion/db/gv-exports/old/genome_taxonomy.tsv
+  provisional_usage: NCLDV_genus_split_grouping_only_not_taxonomy_training_target
+
+sources:
+  ARC:
+    status: present
+    path: /home/fschulz/share/hyejong/genomes-training/order_representatives_2026-09-03/fna
+    metadata_path: /home/fschulz/share/hyejong/genomes-training/order_representatives_2026-09-03/metadata.tsv
+    file_glob: "ARC__*.fna"
+    format: per_genome_fna
+    header_pattern: "ARC__<genome_id>|<contig_id>"
+    metadata_join_key: filename
+    taxonomy_priority: snapshot_metadata
+    main_label: 0
+    sub_label: null
+    record_type: cellular_genome
+    split_key: genome_id_then_similarity_component
+
+  BAC:
+    status: present
+    path: /home/fschulz/share/hyejong/genomes-training/order_representatives_2026-09-03/fna
+    metadata_path: /home/fschulz/share/hyejong/genomes-training/order_representatives_2026-09-03/metadata.tsv
+    file_glob: "BAC__*.fna"
+    format: per_genome_fna
+    header_pattern: "BAC__<genome_id>|<contig_id>"
+    metadata_join_key: filename
+    taxonomy_priority: snapshot_metadata
+    main_label: 0
+    sub_label: null
+    record_type: cellular_genome
+    split_key: genome_id_then_similarity_component
+
+  EUK:
+    status: present
+    path: /home/fschulz/share/hyejong/genomes-training/order_representatives_2026-09-03/fna
+    metadata_path: /home/fschulz/share/hyejong/genomes-training/order_representatives_2026-09-03/metadata.tsv
+    file_glob: "EUK__*.fna"
+    format: per_genome_fna
+    header_pattern: "EUK__<genome_id>|<contig_id>"
+    metadata_join_key: filename
+    taxonomy_priority: snapshot_metadata
+    main_label: 0
+    sub_label: null
+    record_type: cellular_genome
+    split_key: genome_id_then_similarity_component
+    special_rule: quarantine_whole_genome_if_listed_in_optional_eve_host_exclusion_file
+    exclusion_list: data/quarantine/eve_host_cellular_overlap.tsv
+    metadata_flags_to_keep: [subsampled, subsample_target_bp, subsampling_method]
+
+  MITO:
+    status: present
+    path: /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/fna
+    metadata_path: /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/metadata.tsv
+    supporting_files:
+      - /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/source_metadata.tsv
+      - /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/source_audit.tsv
+      - /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/selection.tsv
+      - /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/provenance.json
+    file_glob: "MITO__*.fna"
+    format: per_genome_fna
+    header_pattern: "<accession> <original_NCBI_description>"
+    genome_id_from: filename_without_prefix_and_extension
+    metadata_join_key: filename
+    taxonomy_priority: snapshot_metadata
+    main_label: 0
+    sub_label: null
+    record_type: mitochondrial_genome
+    split_key: genome_id_then_similarity_component
+
+  PLASTID:
+    status: present
+    path: /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/fna
+    metadata_path: /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/metadata.tsv
+    supporting_files:
+      - /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/source_metadata.tsv
+      - /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/source_audit.tsv
+      - /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/selection.tsv
+      - /home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/provenance.json
+    file_glob: "PLASTID__*.fna"
+    format: per_genome_fna
+    header_pattern: "<accession> <original_NCBI_description>"
+    genome_id_from: filename_without_prefix_and_extension
+    metadata_join_key: filename
+    taxonomy_priority: snapshot_metadata
+    main_label: 0
+    sub_label: null
+    record_type: plastid_genome
+    split_key: genome_id_then_similarity_component
+
+  NCLDV:
+    status: present
+    path: /media/shared-expansion/db/gv-exports/NCLDV.fna
+    format: multi_genome_fna
+    header_pattern: "NCLDV__<genome_id>|<contig_id>"
+    main_label: 1
+    sub_label: 0
+    record_type: viral_genome_contig
+    split_key: usable_genus_then_similarity_component
+
+  MIRUS:
+    status: present
+    path: /media/shared-expansion/db/gv-exports/MIRUS.fna
+    format: multi_genome_fna
+    header_pattern: "MIRUS__<genome_id>|<contig_id>"
+    main_label: 1
+    sub_label: 1
+    record_type: viral_genome_contig
+    split_key: genome_ani95_af85_then_similarity_component
+
+  EVE_NCLDV:
+    status: present
+    path: /media/shared-expansion/db/gv-exports/eve_candidates_derep95.fna
+    selector_prefix: EVE-NCLDV__
+    format: multi_genome_fna
+    main_label: 1
+    sub_label: 0
+    taxonomy_training: false
+    record_type: eve_locus
+    split_key: host_assembly_then_similarity_component
+
+  EVE_MIRUS:
+    status: present
+    path: /media/shared-expansion/db/gv-exports/eve_candidates_derep95.fna
+    selector_prefix: EVE-MIRUS__
+    format: multi_genome_fna
+    main_label: 1
+    sub_label: 1
+    taxonomy_training: false
+    record_type: eve_locus
+    split_key: host_assembly_then_similarity_component
+
+  PHAGE:
+    status: present
+    path: /home/fschulz/share/hyejong/genomes-training/metavr_phage_genera_all_quality_2026-09-04/fna
+    metadata_path: /home/fschulz/share/hyejong/genomes-training/metavr_phage_genera_all_quality_2026-09-04/metadata.tsv
+    file_glob: "PHAGE__*.fna"
+    format: per_genome_fna
+    header_pattern: "PHAGE__<uvig>|record_1|img_contig_oid=<source_contig_id>"
+    metadata_join_key: filename
+    taxonomy_priority: snapshot_metadata
+    main_label: 2
+    sub_label: null
+    record_type: uvig
+    genome_id_field: uvig
+    split_key: votu_then_similarity_component
+    taxonomy_group_field: selection_ictv_genus
+    notes:
+      - one_best_uvig_per_assigned_ictv_genus
+      - includes_all_quality_levels
+      - not_all_metavr_phages_and_not_one_representative_per_votu
+      - prefix_PHAGE_also_contains_some_non_bacterial_host_viruses
+
+# Present in eve_candidates_derep95.fna but intentionally not enabled until its
+# role as class-2 hard negative is reviewed.
+disabled_sources:
+  EVE_PPV:
+    path: /media/shared-expansion/db/gv-exports/eve_candidates_derep95.fna
+    selector_prefix: EVE-PPV__
+    reason: endogenous_other_virus_requires_separate_label_noise_review

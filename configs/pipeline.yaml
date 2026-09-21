@@ -1,0 +1,85 @@
+# 모든 조절값은 이 파일에서 수정합니다. 원본 경로만 data_sources.yaml에 있습니다.
+training:
+  version: 1
+  model:
+    name_or_path: DOEJGI/GenomeOcean-100M-v1.2
+    chunk_size_nt: 5000
+    max_input_tokens: 5002
+    verify_no_tokenizer_truncation_before_training: true
+    revision: 26dd3863d7e66a1e1d87ae4e45968bfdc1fa098f
+  common:
+    seed: 20260903
+    optimizer: AdamW
+    learning_rate: 3.0e-05
+    weight_decay: 0.01
+    lr_scheduler: cosine
+    warmup_ratio: 0.05
+    max_grad_norm: 1.0
+    per_device_train_batch_size: 8
+    per_device_validation_batch_size: 8
+    gradient_accumulation_steps: 8
+    precision: bf16
+    dataloader_workers: 0
+    label_smoothing: 0.05
+    log_and_validate_every_fraction_of_epoch: 0.5
+    early_stopping_patience_epochs: 3
+    early_stopping_min_delta: 0.001
+    genome_balancing: true
+    class_weight_power: 0.5
+    calibration_temperatures: [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0]
+  main:
+    num_labels: 3
+    max_epochs: 10
+  sub:
+    num_labels: 2
+    max_epochs: 10
+preprocessing:
+  version: 1
+  normalization:
+    uppercase: true
+    u_to_t: true
+    ambiguous_iupac_to_n: true
+    delete_n: false
+    preserve_original_coordinates: true
+    quarantine_if_n_fraction_above: 0.2
+  chunking:
+    size_nt: 5000
+    minimum_tail_nt: 500
+    small_tail_policy: rebalance_last_two
+    preserve_short_contigs: true
+  train_augmentation:
+    reverse_complement_probability: 0.5
+  storage:
+    training_format: csv_gzip
+    per_chunk_files: false
+  similarity:
+    executable: mmseqs
+    threads: 16
+    identity: 0.95
+    coverage: 0.85
+    sensitivity: 7.5
+    max_hits: 10000
+    # 일반 Mirus만 genome 전체 단위로 추가 검사한다. 값은 비율(0~1)이다.
+    mirus_genome_ani:
+      enabled: true
+      executable: skani
+      threads: 16
+      ani: 0.95
+      aligned_fraction_shorter: 0.85
+      preset: medium
+split:
+  seed: 20260903
+  ratios:
+    train: 0.8
+    validation: 0.1
+    inference: 0.1
+inference:
+  batch_size: 8
+  aggregation: valid_bp_weighted_mean_log_probability
+  bootstrap_replicates: 200
+  calibration_bins: 10
+  save_chunk_probabilities: true
+taxonomy:
+  max_epochs: 10
+  minimum_train_genomes_per_taxon: 2
+  unknown_probability_threshold: 0.8
