@@ -105,8 +105,9 @@ def normalize_dna(sequence):
     if bad: raise ValueError(f"Invalid non-IUPAC DNA characters: {sorted(bad)}")
     return re.sub(r"[^ACGTN]", "N", sequence.upper().translate(DNA_TRANS))
 def stable_id(*parts, length=20): return hashlib.sha256("\x1f".join(map(str, parts)).encode()).hexdigest()[:length]
+def reverse_complement(sequence): return sequence.translate(RC_TRANS)[::-1]
 def sequence_hashes(sequence):
-    forward = hashlib.sha256(sequence.encode()).hexdigest(); reverse = sequence.translate(RC_TRANS)[::-1]
+    forward = hashlib.sha256(sequence.encode()).hexdigest(); reverse = reverse_complement(sequence)
     return forward, hashlib.sha256(min(sequence, reverse).encode()).hexdigest()
 def file_sha256(path):
     digest = hashlib.sha256()
@@ -129,6 +130,63 @@ RAW = ROOT / "records.raw.tsv.gz"
 EDGES = ROOT / "similarity_edges.tsv"
 MIRUS_ANI_EDGES = ROOT / "mirus_genome_ani_edges.tsv"
 WORK = PROJECT_ROOT / "data/preprocessed/similarity"
+
+
+def stale_work_paths():
+    """Return only known, derived leftovers from interrupted similarity runs."""
+    if not WORK.exists():
+        return []
+    paths = []
+    for path in WORK.iterdir():
+        if (
+            path.name == "audit_fragments.fna"
+            or path.name.startswith(".mmseqs_")
+            or path.name.startswith(".linclust_")
+            or (path.name.startswith("hits_") and path.suffix == ".tsv")
+        ):
+            paths.append(path)
+    edge_tmp = EDGES.with_suffix(".tmp")
+    if edge_tmp.exists():
+        paths.append(edge_tmp)
+    return sorted(paths, key=lambda path: str(path))
+
+
+def remove_stale_work(paths):
+    """Delete only explicitly recognized derived files after --clean-stale."""
+    allowed_roots = {WORK.resolve(), ROOT.resolve()}
+    removed_bytes = 0
+    for path in paths:
+        if path.parent.resolve() not in allowed_roots:
+            raise ValueError(f"Refusing to remove unexpected path: {path}")
+        if path.is_symlink() or path.is_file():
+            removed_bytes += path.stat().st_size
+            path.unlink()
+        elif path.is_dir():
+            removed_bytes += sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+            shutil.rmtree(path)
+    return removed_bytes
+
+
+def run_logged_command(command, log_path):
+    """Run one external command and surface the log tail on failure."""
+    print("[COMMAND] " + " ".join(map(str, command)), flush=True)
+    with log_path.open("a", encoding="utf-8") as handle:
+        handle.write("\n[COMMAND] " + " ".join(map(str, command)) + "\n")
+        handle.flush()
+        result = subprocess.run(command, stdout=handle, stderr=subprocess.STDOUT)
+    if result.returncode != 0:
+        tail = log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-30:]
+        print("[ERROR] External command failed; last log lines:\n" + "\n".join(tail), flush=True)
+        raise RuntimeError(
+            f"Command failed with exit code {result.returncode}. See {log_path}"
+        )
+
+
+def original_fragment_id(search_id, fragment_ids):
+    """Validate and return one biological fragment ID emitted by Linclust."""
+    if search_id not in fragment_ids:
+        raise ValueError(f"Unexpected Linclust record ID: {search_id}")
+    return search_id
 
 
 def run_mirus_genome_ani(records, cfg, connect):
@@ -252,6 +310,11 @@ def run_mirus_genome_ani(records, cfg, connect):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--clean-stale",
+        action="store_true",
+        help="Remove only recognized intermediate files left by an interrupted similarity run.",
+    )
     args = parser.parse_args()
     settings = load_yaml("preprocessing.yaml")
     cfg = settings["similarity"]
@@ -261,6 +324,31 @@ def main():
     if not executable:
         raise SystemExit("MMseqs2 is required: conda install -c conda-forge -c bioconda mmseqs2")
     WORK.mkdir(parents=True, exist_ok=True)
+    if cfg.get("method") != "linclust_connected_component":
+        raise ValueError("similarity.method must be linclust_connected_component")
+    if int(cfg.get("cluster_mode", -1)) != 1:
+        raise ValueError("cluster_mode=1 is required so transitive near matches stay in one split")
+    if cfg.get("strand_handling") != "mmseqs_nucleotide_native":
+        raise ValueError("strand_handling must be mmseqs_nucleotide_native")
+    memory_limit = str(cfg.get("memory_limit", ""))
+    if not re.fullmatch(r"[1-9][0-9]*[KMGT]", memory_limit, flags=re.IGNORECASE):
+        raise ValueError("similarity.memory_limit must look like 48G or 800M")
+
+    stale_paths = stale_work_paths()
+    if stale_paths and not args.clean_stale:
+        preview = "\n".join(f"  - {path}" for path in stale_paths[:20])
+        raise SystemExit(
+            "Interrupted-run files exist. Inspect them, then rerun with --clean-stale "
+            "to remove only these derived files:\n" + preview
+        )
+    if stale_paths:
+        removed_bytes = remove_stale_work(stale_paths)
+        print(
+            f"[CLEAN] removed {len(stale_paths)} stale derived path(s), "
+            f"{removed_bytes / (1024 ** 3):.2f} GiB",
+            flush=True,
+        )
+
     tee = Tee(PROJECT_ROOT / "logs/preprocess" / f"02_similarity_{timestamp()}.log")
     tee.start()
     started = print_run_header("preprocess/similarity", [RAW], WORK)
@@ -274,6 +362,7 @@ def main():
         fragment_ids = set()
         written_edges = set()
         fragment_count = 0
+        search_sequence_count = 0
         bases = 0
         fasta = WORK / "audit_fragments.fna"
         edge_tmp = EDGES.with_suffix(".tmp")
@@ -324,8 +413,11 @@ def main():
                                 continue
                             fid = rid + ":" + str(start)
                             fragment_ids.add(fid)
+                            # MMseqs nucleotide Linclust는 reverse-complement strand도 처리한다.
+                            # 한 fragment를 한 번만 기록해 검색 입력을 불필요하게 두 배로 만들지 않는다.
                             fa.write(f">{fid}\n{fragment}\n")
                             fragment_count += 1
+                            search_sequence_count += 1
                             bases += len(fragment)
                 if path_number % 100 == 0 or path_number == total_paths:
                     print(
@@ -333,35 +425,112 @@ def main():
                         f"unique_fragments={fragment_count:,} | bases={bases:,}", flush=True
                     )
 
-            # 4. 5 kb 조각 DNA alignment의 identity와 양쪽 coverage를 검사한다.
-            hits = WORK / f"hits_{timestamp()}.tsv"
-            temporary = tempfile.TemporaryDirectory(prefix=".mmseqs_", dir=WORK)
-            command = [
-                executable, "easy-search", str(fasta), str(fasta), str(hits), temporary.name,
-                "--search-type", "3", "--min-seq-id", str(cfg["identity"]),
-                "-c", str(cfg["coverage"]), "--cov-mode", "0",
-                "--threads", str(cfg["threads"]), "-s", str(cfg["sensitivity"]),
-                "--max-seqs", str(cfg["max_hits"]), "--strand", "2",
-                "--format-output", "query,target,fident,qcov,tcov",
-            ]
-            print("[COMMAND] " + " ".join(command), flush=True)
+            # 4. 대용량 all-vs-all search 대신 Linclust connected components를 만든다.
+            # identity/양방향 coverage 기준은 그대로 유지하고 split당 메모리를 제한한다.
+            linclust_log = WORK / "linclust.log"
+            linclust_log.write_text(
+                f"[START] {now_local()} | fragments={fragment_count} | "
+                f"search_sequences={search_sequence_count} | memory_limit={memory_limit}\n",
+                encoding="utf-8",
+            )
+            temporary = tempfile.TemporaryDirectory(prefix=".linclust_", dir=WORK)
+            cluster_stats = {
+                "clusters": 0,
+                "multi_record_clusters": 0,
+                "mixed_label_clusters": 0,
+                "record_links": 0,
+            }
             try:
-                with (WORK / "mmseqs.log").open("w") as mm_log:
-                    subprocess.run(command, stdout=mm_log, stderr=subprocess.STDOUT, check=True)
+                temp_root = Path(temporary.name)
+                sequence_db = temp_root / "fragment_db"
+                cluster_db = temp_root / "fragment_cluster"
+                cluster_tmp = temp_root / "work"
+                cluster_tsv = temp_root / "clusters.tsv"
+
+                run_logged_command(
+                    [
+                        executable, "createdb", str(fasta), str(sequence_db),
+                        "--dbtype", "2", "--shuffle", "0", "--createdb-mode", "0",
+                    ],
+                    linclust_log,
+                )
+                run_logged_command(
+                    [
+                        executable, "linclust", str(sequence_db), str(cluster_db), str(cluster_tmp),
+                        "--min-seq-id", str(cfg["identity"]),
+                        "-c", str(cfg["coverage"]), "--cov-mode", "0",
+                        "--cluster-mode", str(cfg["cluster_mode"]),
+                        "--similarity-type", "2",
+                        "--kmer-per-seq", str(cfg["kmer_per_sequence"]),
+                        "--kmer-per-seq-scale", str(cfg["kmer_per_sequence_scale"]),
+                        "--split-memory-limit", memory_limit,
+                        "--threads", str(cfg["threads"]),
+                        "--remove-tmp-files", "1",
+                    ],
+                    linclust_log,
+                )
+                run_logged_command(
+                    [
+                        executable, "createtsv", str(sequence_db), str(sequence_db),
+                        str(cluster_db), str(cluster_tsv), "--threads", str(cfg["threads"]),
+                    ],
+                    linclust_log,
+                )
+
+                def process_cluster(search_members):
+                    if not search_members:
+                        return
+                    cluster_stats["clusters"] += 1
+                    record_ids = sorted({
+                        original_fragment_id(member, fragment_ids).rsplit(":", 1)[0]
+                        for member in search_members
+                    })
+                    if len(record_ids) < 2:
+                        return
+                    cluster_stats["multi_record_clusters"] += 1
+                    labels = {
+                        (records[record_id]["main_label"], records[record_id]["sub_label"])
+                        for record_id in record_ids
+                    }
+                    if len(labels) > 1:
+                        cluster_stats["mixed_label_clusters"] += 1
+                        for record_id in record_ids:
+                            excluded[record_id] = "cross_label_near_fragment"
+                        return
+                    anchor = record_ids[0]
+                    for record_id in record_ids[1:]:
+                        connect(anchor, record_id, "near_fragment_linclust")
+                        cluster_stats["record_links"] += 1
+
+                current_representative = None
+                current_members = []
+                with cluster_tsv.open(encoding="utf-8") as cluster_handle:
+                    for line_number, raw_line in enumerate(cluster_handle, start=1):
+                        fields = raw_line.rstrip("\n").split("\t")
+                        if len(fields) != 2:
+                            raise ValueError(f"Malformed Linclust TSV line {line_number}")
+                        representative, member = fields
+                        if current_representative is None:
+                            current_representative = representative
+                        elif representative != current_representative:
+                            process_cluster(current_members)
+                            current_representative = representative
+                            current_members = []
+                        current_members.append(member)
+                process_cluster(current_members)
             finally:
-                # MMseqs 자체가 만드는 내부 latest link까지 임시 작업공간과 함께 정리한다.
+                # 정상적인 Python 예외까지는 즉시 정리한다. SIGKILL 잔여물은 --clean-stale로만 삭제한다.
                 temporary.cleanup()
-            for line in hits.open():
-                q, t, identity, qc, tc = line.rstrip().split("\t")
-                if q not in fragment_ids or t not in fragment_ids:
-                    raise ValueError("Unexpected MMseqs record ID")
-                if q == t:
-                    continue
-                if min(float(qc), float(tc)) >= cfg["coverage"] and float(identity) >= cfg["identity"]:
-                    connect(q.split(":")[0], t.split(":")[0], "near_fragment")
-            # 매우 큰 검색 입력/결과는 최종 산출물이 아니므로 성공한 경우에만 정리한다.
+
+            # 큰 audit FASTA는 최종 산출물이 아니므로 성공한 경우에만 지운다.
             fasta.unlink()
-            hits.unlink()
+            print(
+                f"[LINCLUST] fragments={fragment_count:,} | search_sequences={search_sequence_count:,} "
+                f"| clusters={cluster_stats['clusters']:,} | "
+                f"multi_record={cluster_stats['multi_record_clusters']:,} | "
+                f"mixed_label={cluster_stats['mixed_label_clusters']:,}",
+                flush=True,
+            )
         edge_tmp.replace(EDGES)
         write_json(ROOT / "similarity_exclusions.json", excluded)
         write_json(ROOT / "similarity_audit.json", {
@@ -371,12 +540,17 @@ def main():
             "mirus_ani_edges_sha256": file_sha256(MIRUS_ANI_EDGES),
             "settings": cfg, "complete": True,
             "units": ["Mirus_whole_genome_ANI_AF", "all_source_5kb_fragment_similarity"],
-            "method": "skani_Mirus_genome_ANI_AF_plus_MMseqs_fragments_plus_exact_hash",
+            "method": "skani_Mirus_genome_ANI_AF_plus_MMseqs_Linclust_bidirectional_fragments_plus_exact_hash",
             "mirus_genome_ani": mirus_stats,
+            "linclust": cluster_stats,
+            "fragment_count": fragment_count,
+            "search_sequence_count": search_sequence_count,
         })
         finish_stats("preprocess/similarity", started, WORK / "runtime.json", bases=bases,
                      chunks=fragment_count,
-                     extra={"excluded_records": len(excluded), "mirus_genome_ani": mirus_stats})
+                     extra={"excluded_records": len(excluded), "mirus_genome_ani": mirus_stats,
+                            "linclust": cluster_stats, "search_sequence_count": search_sequence_count,
+                            "memory_limit": memory_limit})
     finally:
         tee.close()
 
