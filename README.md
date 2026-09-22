@@ -166,7 +166,7 @@ chunk를 먼저 무작위로 섞으면 같은 genome의 거의 동일한 조각�
 
 현재 입력 snapshot을 검사하면 고유 Cellular genome 22개가 해당한다. 구성은 BAC 2개, EUK 19개, PLASTID 1개다. EVE assembly 일치는 고유 genome 18개이며, 일부는 EVE NCLDV와 EVE Mirus 양쪽에 일치한다. PHAGE host species 일치는 4개다. 이 개수는 원본 snapshot이 바뀌면 전처리 실행 시 자동으로 다시 계산된다.
 
-그 다음 모든 source의 5 kb audit fragment를 MMseqs2로 비교한다. 양방향 coverage 85% 이상, identity 95% 이상인 조각이나 exact/reverse-complement duplicate가 있으면 두 group을 하나의 similarity component로 연결한다. Mirus ANI/AF edge와 이 fragment edge를 모두 합치며, A-B, B-C가 연결되면 A-B-C 전체가 같은 split으로 간다. 서로 다른 label에서 이 정도로 유사한 서열이 나오면 어느 label이 맞는지 임의로 정하지 않고 양쪽 record를 quarantine한다.
+그 다음 모든 source의 5 kb audit fragment를 MMseqs2 Linclust로 비교한다. 양방향 coverage 85% 이상, identity 95% 이상인 조각이나 exact/reverse-complement duplicate가 있으면 두 group을 하나의 similarity component로 연결한다. 현재 설치된 MMseqs nucleotide Linclust가 reverse-complement strand를 인식하는 것을 기능 테스트로 확인했으므로 각 fragment는 한 번만 기록한다. Mirus ANI/AF edge와 이 fragment edge를 모두 합치며, A-B, B-C가 연결되면 A-B-C 전체가 같은 split으로 간다. 서로 다른 label이 같은 component에 들어가면 어느 label이 맞는지 임의로 정하지 않고 해당 record를 quarantine한다.
 
 최종 component를 source와 main label별로 나눈 뒤, 각 그룹의 genome 수와 총 염기 수가 80/10/10에 가깝도록 deterministic하게 배정한다. 그래서 정확히 row 80/10/10은 아닐 수 있다. NCLDV genus처럼 큰 그룹을 자르지 않는 것이 작은 비율 오차보다 더 중요하다.
 
@@ -199,9 +199,17 @@ MITO/PLASTID에서는 원본 `metadata.tsv`의 파일 목록과 FASTA 파일 목
 split 전에 다음 두 검사를 수행한다.
 
 1. 일반 Mirus의 모든 contig를 genome별 임시 FASTA로 묶고 skani로 all-vs-all 비교한다. `ANI ≥95%`와 짧은 genome 기준 `AF ≥85%`를 모두 통과한 쌍을 `data/manifests/mirus_genome_ani_edges.tsv`에 기록한다. 현재 Mirus 중 N50이 10 kb 미만인 genome이 약 24%여서 skani의 `medium` preset을 사용한다.
-2. 모든 source에서 exact hash와 MMseqs2 95% identity/85% bidirectional coverage를 검사한다.
+2. 모든 source에서 exact hash와 MMseqs2 Linclust의 95% identity/85% bidirectional coverage를 검사한다. 수백만 fragment 전체에 `easy-search` all-vs-all을 실행하지 않고 connected-component clustering을 사용한다. 메모리는 기본 48GB로 제한하며, MMseqs가 필요한 경우 내부적으로 입력을 나누어 처리한다. Exact/reverse-complement 동일 서열은 SHA-256으로 빠짐없이 검사하고, near-similarity 후보 탐색은 대규모 데이터에 맞춘 Linclust 방식이므로 exhaustive all-pairs보다는 근사적이다.
 
-두 결과는 최종 `similarity_edges.tsv`에 합쳐진다. skani에 전달하기 위해 잠시 만드는 genome별 FASTA와 MMseqs audit fragment는 성공 후 삭제되며 원본 FASTA는 수정하지 않는다. threshold, thread, skani preset은 `configs/pipeline.yaml`의 `similarity` 부분에서 바꿀 수 있다.
+두 결과는 최종 `similarity_edges.tsv`에 합쳐진다. skani에 전달하기 위해 잠시 만드는 genome별 FASTA와 MMseqs audit fragment/database는 성공 후 삭제되며 원본 FASTA는 수정하지 않는다. identity, coverage, thread, memory limit, Linclust k-mer 수와 skani preset은 `configs/pipeline.yaml`의 `similarity` 부분에서 바꿀 수 있다. 메모리가 부족한 서버에서는 `memory_limit: 48G`를 `32G`처럼 낮출 수 있지만 split 수가 늘어 실행 시간은 길어진다.
+
+실행이 `Killed`, 서버 재시작 등으로 갑자기 종료되면 큰 임시 디렉터리가 남을 수 있다. 스크립트는 이를 자동 삭제하지 않고 중단한다. 경로를 확인한 뒤 다음처럼 `--clean-stale`를 명시해야 **이 단계에서 만든 파생 중간 파일만** 제거하고 다시 시작한다.
+
+```bash
+python scripts/01_preprocessing/02_similarity.py --clean-stale
+```
+
+진행 상황은 메인 로그와 `data/preprocessed/similarity/linclust.log`에서 확인한다. 최종 `[DONE]`과 `data/manifests/similarity_audit.json`의 `complete: true`가 있어야 다음 단계로 넘어간다.
 
 ### 4.3 `03_make_splits.py`
 
@@ -376,7 +384,7 @@ python scripts/01_preprocessing/04_make_chunks.py
 python scripts/01_preprocessing/05_validate_preprocessed.py
 ```
 
-Mirus skani all-vs-all과 전체 MMseqs2 비교는 데이터가 크므로 오래 걸릴 수 있다. 진행 상황은 `logs/preprocess/`에서 확인한다. 각 단계는 기존 결과를 자동으로 덮어쓰지 않는다. `run_preprocessing.py`는 수동 실행을 원한다면 사용할 필요가 없다.
+Mirus skani all-vs-all과 전체 MMseqs2 Linclust는 데이터가 크므로 오래 걸릴 수 있다. 진행 상황은 `logs/preprocess/`와 `data/preprocessed/similarity/linclust.log`에서 확인한다. 각 단계는 기존 결과를 자동으로 덮어쓰지 않는다. 중단된 2단계의 파생 임시 파일이 있으면 위에서 설명한 `--clean-stale`를 사용한다. `run_preprocessing.py`는 수동 실행을 원한다면 사용할 필요가 없다.
 
 ### 9.3 main과 sub 학습
 

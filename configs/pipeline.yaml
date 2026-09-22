@@ -57,8 +57,16 @@ preprocessing:
     threads: 16
     identity: 0.95
     coverage: 0.85
-    sensitivity: 7.5
-    max_hits: 10000
+    # 4백만 개 이상의 5 kb fragment를 all-vs-all easy-search하지 않고
+    # 선형 시간에 가까운 Linclust connected-component 방식으로 묶는다.
+    method: linclust_connected_component
+    memory_limit: 48G
+    cluster_mode: 1
+    # 5 kb에서 95% 이상 유사한 후보를 찾기 위한 고정 k-mer 표본 수.
+    # 값을 올리면 민감도와 메모리/시간이 함께 증가한다.
+    kmer_per_sequence: 80
+    kmer_per_sequence_scale: 0.0
+    strand_handling: mmseqs_nucleotide_native
     # 일반 Mirus만 genome 전체 단위로 추가 검사한다. 값은 비율(0~1)이다.
     mirus_genome_ani:
       enabled: true
