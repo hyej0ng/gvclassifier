@@ -48,6 +48,31 @@ class Tee:
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True); temp = path.with_suffix(path.suffix + ".tmp")
     temp.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"); temp.replace(path)
+def merge_training_settings(common: dict, task_config: dict) -> dict:
+    task_only_keys = {"num_labels", "max_epochs"}
+    unknown = set(task_config) - set(common) - task_only_keys
+    if unknown:
+        raise ValueError(f"Unknown task-specific training settings: {sorted(unknown)}")
+    return {**common, **task_config}
+def replace_directory(staged: Path, target: Path) -> None:
+    """Replace a checkpoint slot while retaining a recoverable previous copy during the rename."""
+    previous = target.with_name(f".{target.name}.previous")
+    if previous.exists():
+        shutil.rmtree(previous)
+    if target.exists():
+        target.replace(previous)
+    try:
+        staged.replace(target)
+    except BaseException:
+        if previous.exists() and not target.exists():
+            previous.replace(target)
+        raise
+    if previous.exists():
+        shutil.rmtree(previous)
+def recover_checkpoint_slot(target: Path) -> None:
+    previous = target.with_name(f".{target.name}.previous")
+    if not target.exists() and previous.exists():
+        previous.replace(target)
 def gpu_info():
     try: result = subprocess.run(["nvidia-smi", "--query-gpu=index,name,memory.total,memory.used", "--format=csv,noheader,nounits"], check=True, capture_output=True, text=True)
     except (FileNotFoundError, subprocess.CalledProcessError): return []
@@ -214,6 +239,68 @@ def make_weighted_trainer_class(class_weights, label_smoothing: float):
             loss = (losses * sample_weight).mean()
             return (loss, outputs) if return_outputs else loss
 
+        def _save_best_model(self) -> None:
+            best_dir = Path(self.args.output_dir) / "best"
+            staged = best_dir.with_name(".best.staging")
+            if staged.exists():
+                shutil.rmtree(staged)
+            self.save_model(str(staged), _internal_call=True)
+            write_json(staged / "best_metric.json", {
+                "metric": self.args.metric_for_best_model,
+                "value": self.state.best_metric,
+                "global_step": self.state.global_step,
+                "epoch": self.state.epoch,
+            })
+            replace_directory(staged, best_dir)
+            self.state.best_model_checkpoint = str(best_dir)
+            self.state.best_global_step = self.state.global_step
+            print(
+                f"[CHECKPOINT] best updated | epoch={float(self.state.epoch or 0):.1f} "
+                f"| step={self.state.global_step} | metric={self.state.best_metric:.6f}"
+            )
+
+        def _determine_best_metric(self, metrics, trial):
+            is_new_best = super()._determine_best_metric(metrics, trial)
+            if is_new_best and self.args.should_save:
+                self._save_best_model()
+            return is_new_best
+
+        def _save_checkpoint(self, model, trial):
+            """Write one complete, resumable checkpoint to the fixed latest/ slot."""
+            latest_dir = Path(self.args.output_dir) / "latest"
+            staging_root = latest_dir.with_name(".latest.staging")
+            if staging_root.exists():
+                shutil.rmtree(staging_root)
+            staging_root.mkdir(parents=True)
+
+            original_output_dir = self.args.output_dir
+            original_save_strategy = self.args.save_strategy
+            try:
+                self.args.output_dir = str(staging_root)
+                # Prevent Trainer from redirecting best_model_checkpoint to checkpoint-N.
+                self.args.save_strategy = "no"
+                super()._save_checkpoint(model, trial)
+            finally:
+                self.args.output_dir = original_output_dir
+                self.args.save_strategy = original_save_strategy
+
+            staged_checkpoint = staging_root / f"checkpoint-{self.state.global_step}"
+            if not staged_checkpoint.is_dir():
+                raise RuntimeError(f"Latest checkpoint staging failed: {staged_checkpoint}")
+            replace_directory(staged_checkpoint, latest_dir)
+            shutil.rmtree(staging_root)
+            print(
+                f"[CHECKPOINT] latest updated | epoch={float(self.state.epoch or 0):.1f} "
+                f"| step={self.state.global_step}"
+            )
+
+        def load_best_model(self) -> None:
+            best_dir = Path(self.args.output_dir) / "best"
+            if not best_dir.is_dir():
+                raise RuntimeError(f"Best checkpoint was not created: {best_dir}")
+            self.state.best_model_checkpoint = str(best_dir)
+            self._load_best_model()
+
     return WeightedTrainer
 
 
@@ -264,7 +351,7 @@ def metric_function(validation_dataset, n_labels: int):
     return compute
 
 
-# 6. 0.5 epoch마다 한 줄 log, history.csv, loss graph 저장
+# 6. 설정한 epoch 간격마다 한 줄 log, history.csv, loss graph 저장
 def make_progress_callback(run_dir: Path, total_epochs: int):
     from transformers import TrainerCallback
 
@@ -273,6 +360,8 @@ def make_progress_callback(run_dir: Path, total_epochs: int):
             self.last_train_loss = float("nan")
             self.last_lr = float("nan")
             self.evaluations = 0
+            self.last_evaluation_step = None
+            self.last_evaluation_epoch = None
             self.history_path = run_dir / "history.csv"
             if not self.history_path.exists():
                 with self.history_path.open("w", newline="", encoding="utf-8") as handle:
@@ -292,7 +381,10 @@ def make_progress_callback(run_dir: Path, total_epochs: int):
 
             metrics = metrics or {}
             self.evaluations += 1
-            epoch = float(state.epoch or 0)
+            self.last_evaluation_step = state.global_step
+            # interval step 반올림으로 생기는 0.09999... 값을 사람이 읽는 epoch 단위로 정규화한다.
+            epoch = round(float(state.epoch or 0), 1)
+            self.last_evaluation_epoch = epoch
             val_loss = float(metrics.get("eval_loss", float("nan")))
             precision = float(metrics.get("eval_genome_precision_macro", float("nan")))
             recall = float(metrics.get("eval_genome_recall_macro", float("nan")))
@@ -311,13 +403,52 @@ def make_progress_callback(run_dir: Path, total_epochs: int):
             plot_history(self.history_path, run_dir / "loss_curve.png")
 
         def on_epoch_end(self, args, state, control, **kwargs):
-            # 마지막 partial interval도 반드시 평가/저장해 last가 실제 마지막 상태가 되게 한다.
-            if state.global_step % args.eval_steps:
-                control.should_log = True
-                control.should_evaluate = True
-                control.should_save = True
+            # 중간 정수 epoch에서 다음 정규 interval과 거의 겹치는 중복 평가를 만들지 않는다.
+            # 최대 epoch에서 같은 표시 epoch의 loss 행은 중복하지 않는다.
+            reached_final_epoch = float(state.epoch or 0) >= total_epochs - 1e-9
+            if reached_final_epoch and state.global_step != self.last_evaluation_step:
+                if round(float(state.epoch), 1) != self.last_evaluation_epoch:
+                    control.should_log = True
+                    control.should_evaluate = True
 
     return ProgressCallback()
+
+
+def make_latest_checkpoint_callback(interval_fraction: float):
+    from transformers import TrainerCallback
+
+    if not 0 < interval_fraction <= 1:
+        raise ValueError("latest_checkpoint_every_fraction_of_epoch must be in (0, 1]")
+
+    class LatestCheckpointCallback(TrainerCallback):
+        def __init__(self):
+            self.next_save_epoch = interval_fraction
+            self.last_save_step = None
+
+        def on_train_begin(self, args, state, control, **kwargs):
+            epoch = float(state.epoch or 0)
+            self.next_save_epoch = (math.floor(epoch / interval_fraction + 1e-9) + 1) * interval_fraction
+
+        def advance_past(self, epoch: float) -> None:
+            while self.next_save_epoch <= epoch + 1e-9:
+                self.next_save_epoch += interval_fraction
+
+        def on_step_end(self, args, state, control, **kwargs):
+            epoch = float(state.epoch or 0)
+            if epoch + 1e-9 >= self.next_save_epoch:
+                control.should_save = True
+                self.advance_past(epoch)
+
+        def on_epoch_end(self, args, state, control, **kwargs):
+            epoch = float(state.epoch or 0)
+            self.advance_past(epoch)
+            if state.global_step != self.last_save_step:
+                control.should_save = True
+
+        def on_save(self, args, state, control, **kwargs):
+            self.last_save_step = state.global_step
+
+    return LatestCheckpointCallback()
 
 
 def plot_history(history_path: Path, output: Path) -> None:
@@ -373,7 +504,11 @@ def main() -> int:
         TrainingArguments,
         set_seed,
     )
-    from transformers.trainer_utils import get_last_checkpoint
+
+    class FixedSlotEarlyStoppingCallback(EarlyStoppingCallback):
+        def on_train_begin(self, args, state, control, **kwargs):
+            if args.metric_for_best_model is None:
+                raise ValueError("Early stopping requires metric_for_best_model")
 
     config = load_yaml("training.yaml")
     common = config["common"]
@@ -386,7 +521,8 @@ def main() -> int:
                        "max_epochs": load_yaml("pipeline.yaml")["taxonomy"]["max_epochs"]}
     else:
         task_config = config[args.task]
-    seed = int(common["seed"])
+    training_settings = merge_training_settings(common, task_config)
+    seed = int(training_settings["seed"])
     set_seed(seed)
 
     run_name = args.run_name or f"{args.task.replace('/', '_')}_{timestamp()}"
@@ -400,6 +536,10 @@ def main() -> int:
         raise SystemExit(f"Run directory exists: {run_dir}. Use a new --run-name or --resume.")
     run_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    best_checkpoint = checkpoint_dir / "best"
+    latest_checkpoint = checkpoint_dir / "latest"
+    recover_checkpoint_slot(best_checkpoint)
+    recover_checkpoint_slot(latest_checkpoint)
 
     train_path = PROJECT_ROOT / "data" / "preprocessed" / args.task / "train.csv.gz"
     validation_path = PROJECT_ROOT / "data" / "preprocessed" / args.task / "validation.csv.gz"
@@ -428,19 +568,22 @@ def main() -> int:
         train_stats = dataset_stats(datasets["train"])
         validation_stats = dataset_stats(datasets["validation"])
         n_labels = int(task_config["num_labels"])
-        class_weights = sqrt_inverse_class_weights(train_stats["genomes_per_class"], n_labels, common["class_weight_power"])
+        class_weights = sqrt_inverse_class_weights(
+            train_stats["genomes_per_class"], n_labels, training_settings["class_weight_power"]
+        )
         for split in ["train", "validation"]:
             split_labels = set(int(v) for v in datasets[split]["labels"])
             if split_labels != set(range(n_labels)) and not (args.task.startswith("taxonomy/") and split == "validation"):
                 raise ValueError(f"Missing class in {split}: {split_labels}")
             ds = datasets[split]
-            base_weights = ds["sample_weight"] if common["genome_balancing"] else [1.0] * len(ds)
+            base_weights = ds["sample_weight"] if training_settings["genome_balancing"] else [1.0] * len(ds)
             weight_sum = sum(float(w) * float(class_weights[int(y)]) for w, y in zip(base_weights, ds["labels"]))
             norm = len(ds) / weight_sum
-            datasets[split] = ds.map(lambda row: {"sample_weight": (float(row["sample_weight"]) if common["genome_balancing"] else 1.0) * float(class_weights[int(row["labels"])]) * norm})
+            datasets[split] = ds.map(lambda row: {"sample_weight": (float(row["sample_weight"]) if training_settings["genome_balancing"] else 1.0) * float(class_weights[int(row["labels"])]) * norm})
         print(f"[DATA] train={json.dumps(train_stats, ensure_ascii=False)}")
         print(f"[DATA] validation={json.dumps(validation_stats, ensure_ascii=False)}")
         print(f"[LOSS] normalized_class_weights={class_weights.tolist()}")
+        print(f"[TRAINING] effective={json.dumps(training_settings, ensure_ascii=False)}")
 
         model_name = config["model"]["name_or_path"]
         print(f"[MODEL] huggingface_repo={model_name} | revision={config['model']['revision']}")
@@ -481,56 +624,58 @@ def main() -> int:
             model.config.id2label = dict(enumerate(taxonomy_meta["labels"]))
             model.config.label2id = {name: i for i, name in enumerate(taxonomy_meta["labels"])}
 
-        # 9. 0.5 epoch 간격으로 log/evaluation/checkpoint
-        epochs = int(task_config["max_epochs"])
-        batch_size = int(common["per_device_train_batch_size"])
-        accumulation = int(common["gradient_accumulation_steps"])
+        # 9. 설정한 epoch 간격으로 log/evaluation/checkpoint
+        epochs = int(training_settings["max_epochs"])
+        batch_size = int(training_settings["per_device_train_batch_size"])
+        accumulation = int(training_settings["gradient_accumulation_steps"])
         world_size = max(int(os.environ.get("WORLD_SIZE", "1")), 1)
         update_steps_per_epoch = max(1, math.ceil(len(datasets["train"]) / (batch_size * accumulation * world_size)))
-        interval_fraction = float(common["log_and_validate_every_fraction_of_epoch"])
+        interval_fraction = float(training_settings["log_and_validate_every_fraction_of_epoch"])
         interval_steps = max(1, round(update_steps_per_epoch * interval_fraction))
-        patience_checks = max(1, round(float(common["early_stopping_patience_epochs"]) / interval_fraction))
-        use_bf16 = not args.cpu and bool(torch.cuda.is_bf16_supported()) and str(common["precision"]).lower() == "bf16"
-        if common["precision"] == "bf16" and not args.cpu and not use_bf16:
+        latest_interval_fraction = float(training_settings["latest_checkpoint_every_fraction_of_epoch"])
+        patience_checks = max(1, round(float(training_settings["early_stopping_patience_epochs"]) / interval_fraction))
+        precision = str(training_settings["precision"]).lower()
+        use_bf16 = not args.cpu and bool(torch.cuda.is_bf16_supported()) and precision == "bf16"
+        if precision == "bf16" and not args.cpu and not use_bf16:
             raise ValueError("Selected GPU does not support BF16; set precision to fp32 or fp16 explicitly")
 
         training_args = TrainingArguments(
             output_dir=str(checkpoint_dir),
             num_train_epochs=epochs,
             per_device_train_batch_size=batch_size,
-            per_device_eval_batch_size=int(common["per_device_validation_batch_size"]),
+            per_device_eval_batch_size=int(training_settings["per_device_validation_batch_size"]),
             gradient_accumulation_steps=accumulation,
-            learning_rate=float(common["learning_rate"]),
-            weight_decay=float(common["weight_decay"]),
-            warmup_ratio=float(common["warmup_ratio"]),
-            lr_scheduler_type=common["lr_scheduler"],
-            max_grad_norm=float(common["max_grad_norm"]),
+            learning_rate=float(training_settings["learning_rate"]),
+            weight_decay=float(training_settings["weight_decay"]),
+            warmup_ratio=float(training_settings["warmup_ratio"]),
+            lr_scheduler_type=training_settings["lr_scheduler"],
+            max_grad_norm=float(training_settings["max_grad_norm"]),
             eval_strategy="steps",
-            save_strategy="steps",
+            save_strategy="no",
             logging_strategy="steps",
             eval_steps=interval_steps,
-            save_steps=interval_steps,
             logging_steps=interval_steps,
-            load_best_model_at_end=True,
+            load_best_model_at_end=False,
             metric_for_best_model="genome_macro_f1",
             greater_is_better=True,
-            save_total_limit=3,
             bf16=use_bf16,
-            fp16=not args.cpu and common["precision"] == "fp16",
+            fp16=not args.cpu and precision == "fp16",
             use_cpu=args.cpu,
             optim="adamw_torch",
-            dataloader_num_workers=int(common["dataloader_workers"]),
+            dataloader_num_workers=int(training_settings["dataloader_workers"]),
             remove_unused_columns=False,
             report_to=[],
             disable_tqdm=True,
+            restore_callback_states_from_checkpoint=True,
             seed=seed,
             data_seed=seed,
         )
 
         WeightedTrainer = make_weighted_trainer_class(
-            class_weights, float(common["label_smoothing"])
+            class_weights, float(training_settings["label_smoothing"])
         )
         progress = make_progress_callback(run_dir, epochs)
+        latest_saver = make_latest_checkpoint_callback(latest_interval_fraction)
         trainer = WeightedTrainer(
             model=model,
             args=training_args,
@@ -544,9 +689,10 @@ def main() -> int:
             compute_metrics=metric_function(datasets["validation"], n_labels),
             callbacks=[
                 progress,
-                EarlyStoppingCallback(
+                latest_saver,
+                FixedSlotEarlyStoppingCallback(
                     early_stopping_patience=patience_checks,
-                    early_stopping_threshold=float(common["early_stopping_min_delta"]),
+                    early_stopping_threshold=float(training_settings["early_stopping_min_delta"]),
                 ),
             ],
             processing_class=tokenizer,
@@ -564,11 +710,12 @@ def main() -> int:
                 trainer.data_collator.reverse_probability = probability
         trainer.evaluate = evaluate_without_augmentation
 
-        resume_checkpoint = get_last_checkpoint(str(checkpoint_dir)) if args.resume else None
+        resume_checkpoint = str(latest_checkpoint) if args.resume and latest_checkpoint.is_dir() else None
         if args.resume and resume_checkpoint is None:
-            raise ValueError("No checkpoint available to resume")
+            raise ValueError(f"No latest checkpoint available to resume: {latest_checkpoint}")
         metadata_path = run_dir / "run_metadata.json"
-        metadata = {"task": args.task, "training": config, "data": data_fingerprint, "train_stats": train_stats,
+        metadata = {"task": args.task, "training": config, "effective_training": training_settings,
+                    "data": data_fingerprint, "train_stats": train_stats,
                     "validation_stats": validation_stats, "class_weights": class_weights.tolist(),
                     "model_source": model_name, "actual_model_commit": getattr(model.config, "_commit_hash", None)}
         import importlib.metadata
@@ -587,6 +734,7 @@ def main() -> int:
         trainer.remove_callback(PrinterCallback)
         result = trainer.train(resume_from_checkpoint=resume_checkpoint)
         trainer.save_state()
+        trainer.load_best_model()
         # best 모델의 validation 예측만으로 temperature를 선택한다.
         trainer.data_collator.reverse_probability = 0.0
         prediction = trainer.predict(datasets["validation"])
@@ -602,7 +750,7 @@ def main() -> int:
         score_matrix = np.stack([scores_by_genome[g] / lengths_by_genome[g] for g in scores_by_genome])
         truth_array = np.array([truths_by_genome[g] for g in scores_by_genome])
         choices = []
-        for temperature in common["calibration_temperatures"]:
+        for temperature in training_settings["calibration_temperatures"]:
             scaled = score_matrix / float(temperature)
             scaled -= scaled.max(1, keepdims=True)
             log_prob = scaled - np.log(np.exp(scaled).sum(1, keepdims=True))
@@ -611,30 +759,29 @@ def main() -> int:
         nll, temperature = min(choices)
         write_json(run_dir / "calibration.json", {"temperature": temperature,
             "fitted_on": "validation_genome_nll", "validation_nll": nll,
-            "candidate_temperatures": common["calibration_temperatures"]})
+            "candidate_temperatures": training_settings["calibration_temperatures"]})
         print(f"[CALIBRATION] temperature={temperature} | validation_genome_NLL={nll:.4f}")
 
         # 10. best와 last를 서로 다른 checkpoint에서 export
         completed_epochs = float(trainer.state.epoch or epochs)
         forward_counts = dict(trainer.forward_counts)
         best_metric = trainer.state.best_metric
-        best_checkpoint = Path(trainer.state.best_model_checkpoint)
-        last_checkpoint_text = get_last_checkpoint(str(checkpoint_dir))
-        if not last_checkpoint_text:
-            raise RuntimeError("No last checkpoint was saved")
-        last_checkpoint = Path(last_checkpoint_text)
+        if not best_checkpoint.is_dir():
+            raise RuntimeError(f"Best checkpoint was not saved: {best_checkpoint}")
+        if not latest_checkpoint.is_dir():
+            raise RuntimeError(f"Latest checkpoint was not saved: {latest_checkpoint}")
         write_json(run_dir / "checkpoint_selection.json", {
-            "best": str(best_checkpoint.relative_to(run_dir)), "last": str(last_checkpoint.relative_to(run_dir)),
+            "best": str(best_checkpoint.relative_to(run_dir)), "latest": str(latest_checkpoint.relative_to(run_dir)),
             "best_genome_macro_f1": best_metric, "completed_epochs": completed_epochs,
             "selection": "highest validation genome macro-F1; exact ties keep earlier checkpoint",
-            "resume_checkpoint": str(last_checkpoint.relative_to(run_dir)),
+            "resume_checkpoint": str(latest_checkpoint.relative_to(run_dir)),
         })
         print(f"[CHECKPOINT] best={best_checkpoint}")
-        print(f"[CHECKPOINT] last={last_checkpoint}")
+        print(f"[CHECKPOINT] latest={latest_checkpoint}")
         del trainer, model
         torch.cuda.empty_cache()
         export_state_dict(best_checkpoint, run_dir / "best.pt")
-        export_state_dict(last_checkpoint, run_dir / "last.pt")
+        export_state_dict(latest_checkpoint, run_dir / "last.pt")
 
         for config_path in (PROJECT_ROOT / "configs").glob("*.yaml"):
             snapshot_dir = run_dir / "config_snapshot"
@@ -659,7 +806,7 @@ def main() -> int:
                 "actual_forward_counts_this_invocation": forward_counts,
                 "throughput_includes_validation_and_checkpoint_export": True,
                 "best_checkpoint": str(best_checkpoint),
-                "last_checkpoint": str(last_checkpoint),
+                "latest_checkpoint": str(latest_checkpoint),
                 "best_metric": best_metric,
                 "model_source": model_name,
                 "data_source": [str(train_path), str(validation_path)],

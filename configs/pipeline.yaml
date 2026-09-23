@@ -1,6 +1,6 @@
 # 모든 조절값은 이 파일에서 수정합니다. 원본 경로만 data_sources.yaml에 있습니다.
 training:
-  version: 1
+  version: 2
   model:
     name_or_path: DOEJGI/GenomeOcean-100M-v1.2
     chunk_size_nt: 5000
@@ -10,7 +10,7 @@ training:
   common:
     seed: 20260903
     optimizer: AdamW
-    learning_rate: 3.0e-05
+    learning_rate: 1.0e-05
     weight_decay: 0.01
     lr_scheduler: cosine
     warmup_ratio: 0.05
@@ -21,18 +21,41 @@ training:
     precision: bf16
     dataloader_workers: 0
     label_smoothing: 0.05
-    log_and_validate_every_fraction_of_epoch: 0.5
+    log_and_validate_every_fraction_of_epoch: 0.1
+    latest_checkpoint_every_fraction_of_epoch: 0.5
     early_stopping_patience_epochs: 3
     early_stopping_min_delta: 0.001
     genome_balancing: true
     class_weight_power: 0.5
     calibration_temperatures: [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0]
   main:
+    # 아래 값은 common의 동일한 이름을 main 학습에서만 덮어씁니다.
     num_labels: 2
     max_epochs: 10
+    learning_rate: 3.0e-05
+    warmup_ratio: 0.05
+    per_device_train_batch_size: 8
+    per_device_validation_batch_size: 8
+    gradient_accumulation_steps: 8
+    label_smoothing: 0.05
+    latest_checkpoint_every_fraction_of_epoch: 0.5
+    early_stopping_patience_epochs: 3
+    early_stopping_min_delta: 0.001
+    class_weight_power: 0.5
   sub:
+    # 아래 값은 common의 동일한 이름을 sub 학습에서만 덮어씁니다.
     num_labels: 3
     max_epochs: 10
+    learning_rate: 1.0e-05
+    warmup_ratio: 0.05
+    per_device_train_batch_size: 8
+    per_device_validation_batch_size: 8
+    gradient_accumulation_steps: 8
+    label_smoothing: 0.05
+    latest_checkpoint_every_fraction_of_epoch: 0.5
+    early_stopping_patience_epochs: 3
+    early_stopping_min_delta: 0.001
+    class_weight_power: 0.5
 preprocessing:
   version: 1
   normalization:

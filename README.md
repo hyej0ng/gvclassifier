@@ -268,12 +268,13 @@ main은 2-class cross-entropy, sub는 3-class cross-entropy를 쓴다. 쉽게 �
 ### 기본 hyperparameter
 
 모든 값은 [configs/pipeline.yaml](configs/pipeline.yaml) 한 곳에서 바꾼다.
+`training.common`은 공통 기본값이고, `training.main`과 `training.sub`에 같은 이름의 값을 두면 해당 task에서만 공통값을 덮어쓴다. 현재 learning rate는 main `3e-5`, sub `1e-5`로 분리되어 있으며 서로 독립적으로 수정할 수 있다.
 
 | 설정 | 기본값 | 의미 |
 |---|---:|---|
 | chunk size | 5,000 nt | 모델 입력 DNA 길이 |
 | max input tokens | 5,002 | tokenizer truncation을 허용하지 않는 안전 상한 |
-| learning rate | `3e-5` | fine-tuning 시작값 |
+| learning rate | main `3e-5`, sub `1e-5` | task별 fine-tuning 시작값 |
 | optimizer | AdamW | 일반적인 Transformer optimizer |
 | weight decay | `0.01` | 과적합 완화 |
 | scheduler | cosine | 학습 후반 learning rate 감소 |
@@ -282,11 +283,16 @@ main은 2-class cross-entropy, sub는 3-class cross-entropy를 쓴다. 쉽게 �
 | gradient accumulation | 8 | 실질 train batch 약 64 chunks |
 | precision | BF16 | 현재 GPU에서 확인 완료 |
 | max epochs | main 10, sub 10 | early stopping 전 최대치 |
-| validation/log | 0.5 epoch마다 | train/val loss와 genome metric 기록 |
+| validation/log | 0.1 epoch마다 | train/val loss와 genome metric 기록 |
+| latest checkpoint | 0.5 epoch와 epoch 종료 시 | 중단 후 resume 가능한 최신 상태를 덮어쓰기 |
 | early stopping | 3 epochs | validation genome macro-F1 개선이 없으면 종료 |
 | selection metric | genome macro-F1 | `best` checkpoint 선택 기준 |
 
+task별로 직접 조정할 수 있도록 `learning_rate`, `warmup_ratio`, train/validation batch, gradient accumulation, label smoothing, latest checkpoint 간격, early stopping, class weight power를 `main`과 `sub` 아래에 각각 명시했다. 그 밖의 `common` 항목도 같은 이름으로 task 아래에 추가하면 해당 task에서만 우선 적용된다. 오타나 지원하지 않는 이름은 학습 시작 전에 오류로 중단한다.
+
 `history.csv`와 `loss_curve.png`에는 같은 x축(epoch)에 train loss와 validation loss가 함께 그려진다. 로그 한 줄은 다음 형태다.
+
+0.1 epoch마다 validation 전체를 평가하므로 loss 변화는 촘촘히 확인할 수 있지만, 학습만 수행할 때보다 runtime이 늘어난다. 기록 간격은 `log_and_validate_every_fraction_of_epoch`에서 조정한다.
 
 ```text
 [LOG] epoch 002.5/010 | gpu=0 | mem_peak=18.42 GiB | train_loss=0.4210 | val_loss=0.4872 | P=0.9012 | R=0.8875 | macro_F1=0.8938 | lr=2.10e-05
@@ -296,10 +302,12 @@ main은 2-class cross-entropy, sub는 3-class cross-entropy를 쓴다. 쉽게 �
 
 ### `best.pt`와 `last.pt`
 
-- `last.pt`: 학습이 종료된 마지막 상태다. 이어 학습할 때는 `runs/.../checkpoints/`의 마지막 checkpoint를 사용한다.
-- `best.pt`: validation **genome-level macro-F1**이 가장 높았던 상태다. 동률이면 먼저 발견된 checkpoint를 유지한다.
+- `checkpoints/best/`: validation **genome-level macro-F1**이 개선될 때만 모델을 원자적으로 덮어쓴다. 동률이면 먼저 발견된 모델을 유지한다.
+- `checkpoints/latest/`: 0.5 epoch와 각 epoch 종료 시 모델·optimizer·scheduler·RNG·Trainer 상태를 원자적으로 덮어쓴다. `--resume`은 이 디렉터리만 사용한다.
+- 일반 `checkpoint-N` 디렉터리는 만들지 않으므로 학습 중 checkpoint가 계속 쌓이지 않는다.
+- `best.pt`와 `last.pt`: 학습 완료 후 각각 `checkpoints/best/`와 `checkpoints/latest/`의 model state를 portable 파일로 내보낸 결과다.
 
-마지막 epoch는 이미 과적합됐을 수 있으므로 최종 inference와 배포에는 `best.pt`를 쓰는 방식이 적절하다. 학습과 inference 모두 tokenizer와 base architecture를 Hugging Face의 `DOEJGI/GenomeOcean-100M-v1.2`에서 불러온다. inference에서는 그 architecture 위에 fine-tuning 결과인 `best.pt`를 적용한다. 마지막 상태인 `last.pt`와 이어 학습용 Trainer checkpoint도 함께 보관한다.
+마지막 epoch는 이미 과적합됐을 수 있으므로 최종 inference와 배포에는 `best.pt`를 쓰는 방식이 적절하다. 학습과 inference 모두 tokenizer와 base architecture를 Hugging Face의 `DOEJGI/GenomeOcean-100M-v1.2`에서 불러온다. inference에서는 그 architecture 위에 fine-tuning 결과인 `best.pt`를 적용한다. 마지막 상태인 `last.pt`와 이어 학습용 `checkpoints/latest/`도 함께 보관한다.
 
 수동으로 모델을 다운로드하거나 프로젝트에 `models/` 폴더를 둘 필요는 없다. `from_pretrained()`가 최초 접근 때 Hugging Face의 사용자 기본 cache로 자동 다운로드하고 이후에는 cache를 재사용한다. 프로젝트 내부에는 모델 cache나 symlink를 만들지 않는다. 재현성을 위해 repository의 현재 설정 revision `26dd3863d7e66a1e1d87ae4e45968bfdc1fa098f`를 고정했다.
 
