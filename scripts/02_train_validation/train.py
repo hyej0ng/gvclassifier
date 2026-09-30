@@ -25,6 +25,16 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PROJECT_ROOT / "configs"
 RUN_STARTS = {}
 RC_TRANS = str.maketrans("ACGTN", "TGCAN")
+HISTORY_FIELDS = [
+    "epoch",
+    "train_loss",
+    "val_loss",
+    "genome_precision_macro",
+    "genome_recall_macro",
+    "genome_macro_f1",
+    "learning_rate",
+    "gpu_peak_gib",
+]
 
 
 # 이 스크립트에서 사용하는 설정·검증·로그 보조 함수
@@ -252,11 +262,14 @@ def make_weighted_trainer_class(class_weights, label_smoothing: float):
                 "epoch": self.state.epoch,
             })
             replace_directory(staged, best_dir)
+            portable_best = Path(self.args.output_dir).parent / "best.pt"
+            export_state_dict(best_dir, portable_best)
             self.state.best_model_checkpoint = str(best_dir)
             self.state.best_global_step = self.state.global_step
             print(
                 f"[CHECKPOINT] best updated | epoch={float(self.state.epoch or 0):.1f} "
-                f"| step={self.state.global_step} | metric={self.state.best_metric:.6f}"
+                f"| step={self.state.global_step} | metric={self.state.best_metric:.6f} "
+                f"| portable={portable_best}"
             )
 
         def _determine_best_metric(self, metrics, trial):
@@ -351,7 +364,62 @@ def metric_function(validation_dataset, n_labels: int):
     return compute
 
 
-# 6. 설정한 epoch 간격마다 한 줄 log, history.csv, loss graph 저장
+# 6. Resume history 정리 및 epoch별 loss/metric 저장
+def repair_history_for_resume(run_dir: Path, latest_checkpoint: Path) -> dict:
+    """Keep only the history branch represented by the durable latest checkpoint."""
+    state_path = latest_checkpoint / "trainer_state.json"
+    if not state_path.exists():
+        raise FileNotFoundError(f"Resume trainer state is missing: {state_path}")
+    checkpoint_epoch = round(float(json.loads(state_path.read_text())["epoch"]), 1)
+    history_path = run_dir / "history.csv"
+    if not history_path.exists():
+        return {"checkpoint_epoch": checkpoint_epoch, "kept": 0, "removed": 0}
+
+    with history_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        if reader.fieldnames != HISTORY_FIELDS:
+            raise ValueError(
+                f"Unexpected history.csv columns: {reader.fieldnames}; expected {HISTORY_FIELDS}"
+            )
+        original_rows = list(reader)
+
+    # 재시작 흔적은 2.0, 2.1, 2.2, 2.0, 2.1처럼 epoch가 뒤로 돌아간다.
+    # 경계 epoch의 기존 행은 남기고, 그 뒤의 이전 branch는 새 branch로 교체한다.
+    repaired_rows = []
+    for row in original_rows:
+        epoch = round(float(row["epoch"]), 1)
+        if repaired_rows and epoch <= round(float(repaired_rows[-1]["epoch"]), 1):
+            repaired_rows = [
+                saved
+                for saved in repaired_rows
+                if round(float(saved["epoch"]), 1) <= epoch
+            ]
+            if any(
+                round(float(saved["epoch"]), 1) == epoch for saved in repaired_rows
+            ):
+                continue
+        repaired_rows.append(row)
+
+    # latest/ 이후의 평가는 durable checkpoint에 포함되지 않았으므로 다시 계산한다.
+    repaired_rows = [
+        row
+        for row in repaired_rows
+        if round(float(row["epoch"]), 1) <= checkpoint_epoch
+    ]
+
+    temp_path = history_path.with_suffix(history_path.suffix + ".tmp")
+    with temp_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=HISTORY_FIELDS)
+        writer.writeheader()
+        writer.writerows(repaired_rows)
+    temp_path.replace(history_path)
+    return {
+        "checkpoint_epoch": checkpoint_epoch,
+        "kept": len(repaired_rows),
+        "removed": len(original_rows) - len(repaired_rows),
+    }
+
+
 def make_progress_callback(run_dir: Path, total_epochs: int):
     from transformers import TrainerCallback
 
@@ -365,9 +433,14 @@ def make_progress_callback(run_dir: Path, total_epochs: int):
             self.history_path = run_dir / "history.csv"
             if not self.history_path.exists():
                 with self.history_path.open("w", newline="", encoding="utf-8") as handle:
-                    csv.writer(handle).writerow(
-                        ["epoch", "train_loss", "val_loss", "genome_precision_macro", "genome_recall_macro", "genome_macro_f1", "learning_rate", "gpu_peak_gib"]
-                    )
+                    csv.writer(handle).writerow(HISTORY_FIELDS)
+            self.reload_recorded_epochs()
+
+        def reload_recorded_epochs(self):
+            with self.history_path.open(newline="", encoding="utf-8") as handle:
+                self.recorded_epochs = {
+                    round(float(row["epoch"]), 1) for row in csv.DictReader(handle)
+                }
 
         def on_log(self, args, state, control, logs=None, **kwargs):
             logs = logs or {}
@@ -396,10 +469,14 @@ def make_progress_callback(run_dir: Path, total_epochs: int):
                 f"| train_loss={self.last_train_loss:.4f} | val_loss={val_loss:.4f} "
                 f"| P={precision:.4f} | R={recall:.4f} | macro_F1={f1:.4f} | lr={self.last_lr:.3e}"
             )
+            if epoch in self.recorded_epochs:
+                print(f"[HISTORY] epoch={epoch:.1f} already recorded; duplicate row skipped")
+                return
             with self.history_path.open("a", newline="", encoding="utf-8") as handle:
                 csv.writer(handle).writerow(
                     [epoch, self.last_train_loss, val_loss, precision, recall, f1, self.last_lr, gpu_peak]
                 )
+            self.recorded_epochs.add(epoch)
             plot_history(self.history_path, run_dir / "loss_curve.png")
 
         def on_epoch_end(self, args, state, control, **kwargs):
@@ -486,7 +563,12 @@ def export_state_dict(checkpoint: Path, pt_path: Path) -> None:
         state_dict = torch.load(bin_path, map_location="cpu", weights_only=True)
     else:
         raise FileNotFoundError(f"No model weights in checkpoint: {checkpoint}")
-    torch.save(state_dict, pt_path)
+    # 저장 도중 종료되어도 기존 portable weight가 손상되지 않도록 원자적으로 교체한다.
+    temp_path = pt_path.with_suffix(pt_path.suffix + ".tmp")
+    if temp_path.exists():
+        temp_path.unlink()
+    torch.save(state_dict, temp_path)
+    temp_path.replace(pt_path)
 
 
 def main() -> int:
@@ -728,6 +810,18 @@ def main() -> int:
             previous = json.loads(metadata_path.read_text())
             if previous["training"] != config or previous["data"] != data_fingerprint:
                 raise ValueError("Resume config/data changed. Start a new run.")
+            history_repair = repair_history_for_resume(run_dir, latest_checkpoint)
+            progress.reload_recorded_epochs()
+            plot_history(progress.history_path, run_dir / "loss_curve.png")
+            print(
+                f"[RESUME] checkpoint_epoch={history_repair['checkpoint_epoch']:.1f} "
+                f"| history_kept={history_repair['kept']} "
+                f"| history_removed={history_repair['removed']}"
+            )
+            if best_checkpoint.is_dir():
+                portable_best = run_dir / "best.pt"
+                export_state_dict(best_checkpoint, portable_best)
+                print(f"[RESUME] portable best synchronized | path={portable_best}")
         else:
             write_json(metadata_path, metadata)
         from transformers.trainer_callback import PrinterCallback

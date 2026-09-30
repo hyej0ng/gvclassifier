@@ -292,6 +292,8 @@ task별로 직접 조정할 수 있도록 `learning_rate`, `warmup_ratio`, train
 
 `history.csv`와 `loss_curve.png`에는 같은 x축(epoch)에 train loss와 validation loss가 함께 그려진다. 로그 한 줄은 다음 형태다.
 
+`--resume`을 사용하면 `checkpoints/latest/trainer_state.json`의 저장 epoch보다 뒤에 남은 미저장 history 행을 먼저 제거한다. 이전 재개에서 epoch가 뒤로 돌아간 흔적도 정리하고, 재개 경계 epoch의 중복 평가는 CSV와 그래프에 두 번 기록하지 않는다.
+
 0.1 epoch마다 validation 전체를 평가하므로 loss 변화는 촘촘히 확인할 수 있지만, 학습만 수행할 때보다 runtime이 늘어난다. 기록 간격은 `log_and_validate_every_fraction_of_epoch`에서 조정한다.
 
 ```text
@@ -305,7 +307,7 @@ task별로 직접 조정할 수 있도록 `learning_rate`, `warmup_ratio`, train
 - `checkpoints/best/`: validation **genome-level macro-F1**이 개선될 때만 모델을 원자적으로 덮어쓴다. 동률이면 먼저 발견된 모델을 유지한다.
 - `checkpoints/latest/`: 0.5 epoch와 각 epoch 종료 시 모델·optimizer·scheduler·RNG·Trainer 상태를 원자적으로 덮어쓴다. `--resume`은 이 디렉터리만 사용한다.
 - 일반 `checkpoint-N` 디렉터리는 만들지 않으므로 학습 중 checkpoint가 계속 쌓이지 않는다.
-- `best.pt`와 `last.pt`: 학습 완료 후 각각 `checkpoints/best/`와 `checkpoints/latest/`의 model state를 portable 파일로 내보낸 결과다.
+- `best.pt`: validation genome macro-F1이 이전 최고값을 넘는 순간 `checkpoints/best/`와 함께 원자적으로 덮어쓴다. 따라서 학습이 중단되어도 그 시점까지의 최고 모델이 남는다. `last.pt`는 학습이 정상 종료된 뒤 `checkpoints/latest/`에서 내보낸다.
 
 마지막 epoch는 이미 과적합됐을 수 있으므로 최종 inference와 배포에는 `best.pt`를 쓰는 방식이 적절하다. 학습과 inference 모두 tokenizer와 base architecture를 Hugging Face의 `DOEJGI/GenomeOcean-100M-v1.2`에서 불러온다. inference에서는 그 architecture 위에 fine-tuning 결과인 `best.pt`를 적용한다. 마지막 상태인 `last.pt`와 이어 학습용 `checkpoints/latest/`도 함께 보관한다.
 
