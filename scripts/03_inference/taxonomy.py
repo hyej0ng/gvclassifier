@@ -12,8 +12,6 @@ import sys
 import time
 from pathlib import Path
 from typing import Iterable
-SCRIPTS_DIR = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SCRIPTS_DIR / "04_evaluation"))
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PROJECT_ROOT / "configs"
 RUN_STARTS = {}

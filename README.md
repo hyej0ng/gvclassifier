@@ -29,8 +29,7 @@
 ├── scripts/
 │   ├── 01_preprocessing/    # manifest → 유사도 검사 → split → 5kb → 최종 QC
 │   ├── 02_train_validation/ # main/sub/taxonomy 학습
-│   ├── 03_inference/        # holdout 평가
-│   └── 04_evaluation/       # 집계, metric, confusion matrix
+│   └── 03_inference/        # holdout 예측, 집계, metric, confusion matrix
 ├── data/
 │   ├── manifests/           # record 출처·label·split과 Mirus ANI/AF edge
 │   ├── splits/              # group별 80/10/10 배정
@@ -70,9 +69,9 @@
 | `03_inference/inference.py` | main 또는 sub 한 모델의 holdout 평가(각각 별도 실행) | 필수 |
 | `03_inference/taxonomy.py` | 선택한 taxonomy 모델 평가 | 선택 |
 | `check_environment.py` | conda package·MMseqs·skani·GPU 검사 | 실행 전 권장 |
-| `04_evaluation/evaluation.py` | 확률 집계, metric, confusion matrix | 내부 부품 |
+| `03_inference/evaluation.py` | 확률 집계, metric, confusion matrix | inference에서 자동 호출하는 내부 부품 |
 
-별도의 공통 Python 모듈은 사용하지 않는다. FASTA 읽기, checksum, 로그, 모델 로딩 같은 보조 함수는 필요한 실행 스크립트 안에 직접 들어 있다. 따라서 한 파일만 열어도 그 단계의 전체 동작을 확인할 수 있다. 대신 같은 함수가 여러 파일에 중복되므로, 이후 동작을 바꿀 때는 관련 스크립트를 모두 함께 수정해야 한다.
+전처리와 학습에는 별도의 공통 Python 모듈을 사용하지 않는다. FASTA 읽기, checksum, 로그, 모델 로딩 같은 보조 함수는 필요한 실행 스크립트 안에 직접 들어 있다. 단, `03_inference/evaluation.py`는 main/sub inference와 taxonomy가 함께 사용하는 집계·평가 함수만 모아 둔 내부 부품이다.
 
 
 ## 2. 입력 데이터의 역할
