@@ -32,14 +32,16 @@ training:
     # 아래 값은 common의 동일한 이름을 main 학습에서만 덮어씁니다.
     num_labels: 2
     max_epochs: 10
-    learning_rate: 3.0e-05
+    learning_rate: 1.0e-05
+    lr_scheduler: cosine
     warmup_ratio: 0.05
     per_device_train_batch_size: 8
     per_device_validation_batch_size: 8
     gradient_accumulation_steps: 8
     label_smoothing: 0.05
+    log_and_validate_every_fraction_of_epoch: 0.2
     latest_checkpoint_every_fraction_of_epoch: 0.5
-    early_stopping_patience_epochs: 3
+    early_stopping_patience_epochs: 2
     early_stopping_min_delta: 0.001
     class_weight_power: 0.5
   sub:
