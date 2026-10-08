@@ -1,0 +1,16 @@
+# Reproducible large/derived outputs
+data/manifests/
+data/splits/
+data/preprocessed/
+runs/
+results/
+logs/
+.cache/
+
+# Keep the reviewed static exclusion list
+data/quarantine/*
+!data/quarantine/eve_host_cellular_overlap.tsv
+
+# Python runtime files
+__pycache__/
+*.pyc
