@@ -1,4 +1,4 @@
-# GenomeOcean holdout fine-tuning pipeline
+# GenomeOcean fine-tuning pipeline
 
 This project first fixes the entire labeled dataset into `train 80% / validation 10% / inference 10%`, then fine-tunes separate GenomeOcean main and sub models and evaluates them on the final 10%.
 
