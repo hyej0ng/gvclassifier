@@ -17,7 +17,7 @@ This project first fixes the entire labeled dataset into `train 80% / validation
 - Only the original data paths in `configs/data_sources.yaml` are absolute. `data/preprocessed` is the final preprocessing output location specified by the user.
 - NCLDV/Mirus/EVE records with insufficient taxonomy information can still be used for main/sub classification. Records without taxonomy target labels are excluded from the auxiliary taxonomy training.
 
-## 1. Simplified directory structure and responsibilities
+## 1. Directory structure and responsibilities
 
 ```text
 02_gv_genomeocean_holdout/
@@ -91,28 +91,128 @@ Any ARC/BAC/EUK/MITO/PLASTID genome overlapping with a host of EVE NCLDV, EVE Mi
 
 ### How each dataset is read
 
-Comparing `metadata.tsv` with `fna/` in `organelle_host_balanced_2026-09-10/` confirmed a total of **935 files representing 935 genomes**, with one FASTA record per file. Actual sequence lengths match the metadata field `output_fasta_bp` for all 935 files. FASTA headers begin with the original accession, and filenames have a `MITO__` or `PLASTID__` prefix. Preprocessing therefore verifies **accession agreement between the filename and header** before creating a genome ID such as `MITO__<accession>`. Each file is read as provided, without copying or modification.
+- **FASTA files contain the DNA sequences.** A FASTA record is one sequence entry. One genome can contain several records when its sequence is divided into contigs.
+- **TSV files describe those sequences.** They provide information such as genome names, taxonomy, sequence lengths, quality, and selection history. The pipeline links this information to the corresponding sequences using filenames or genome IDs.
+- **All counts below describe the original inputs.** They are measured before quarantine, similarity filtering, splitting, and chunking. NCLDV/MIRUS/EVE counts were checked directly from FASTA files. Cellular/PHAGE counts come from snapshot metadata and agree with the raw manifest summary.
+- **Input locations are configured in `configs/data_sources.yaml`.** Original FASTA files are read without modification.
 
-| Category | MITO | PLASTID | Total |
+#### ARC, BAC, and EUK
+
+| Prefix | Original FASTA path | Genomes/files | FASTA records | Bases |
+|---|---|---:|---:|---:|
+| ARC | `fna/ARC__*.fna` | 172 | 9,460 | 302,682,872 |
+| BAC | `fna/BAC__*.fna` | 1,991 | 225,723 | 6,131,933,134 |
+| EUK | `fna/EUK__*.fna` | 130 | 1,366,361 | 7,677,494,753 |
+
+- **What they are:** ARC contains archaeal genomes, BAC contains bacterial genomes, and EUK contains eukaryotic genomes.
+- **Original directory:** `/home/fschulz/share/hyejong/genomes-training/order_representatives_2026-09-03/`.
+- **Sequence files:** `fna/ARC__*.fna`, `fna/BAC__*.fna`, and `fna/EUK__*.fna`. Each file represents one genome and can contain several contigs.
+- **Information file:** `metadata.tsv` contains 2,293 rows covering all three prefixes. The listed filenames match the FASTA files exactly.
+- **How sequences are identified:** Headers such as `BAC__<genome_id>|<contig_id>` give the genome and contig IDs. The pipeline matches each filename to its metadata row and keeps all contigs from the same genome together during splitting.
+- **What the metadata provides:** `assembly_accession` identifies the assembly, `organism_name` gives the organism, and `taxonomy_string` gives its lineage. Other fields describe assembly quality, representative status, sequence sizes, selection reasons, and download locations.
+- **Where taxonomy comes from:** All three use sequences exported from GenBank. ARC and BAC use GTDB taxonomy and GTDB representative genomes. EUK uses NCBI Taxonomy.
+- **How genomes were selected:** ARC and BAC are order representatives. EUK includes 120 order representatives, 5 additional Opisthokonta genomes, and 5 additional Viridiplantae genomes. Selection prioritizes representative/reference status, full genome status, assembly level, fewer contigs, genome length, and accession.
+- **Important EUK detail:** 94 genomes were retained in full. The other 36 were already reduced to the first 100,000,000 bases when the original snapshot was created, with the final retained record trimmed if necessary. The fields `subsampled`, `subsample_target_bp`, and `subsampling_method` record this preparation.
+- **Important taxonomy detail:** All rows contain a lineage string and an order name, but separate phylum, class, family, genus, and species fields are empty. The current code reads those separate fields and does not automatically extract missing ranks from the lineage string. Assembly accessions and organism names are still available for checking overlap with viral hosts.
+
+
+#### MITO and PLASTID
+
+| Prefix | Original FASTA path | Genomes/files | FASTA records | Bases |
+|---|---|---:|---:|---:|
+| MITO | `fna/MITO__*.fna` | 677 | 677 | 77,598,909 |
+| PLASTID | `fna/PLASTID__*.fna` | 258 | 258 | 42,785,928 |
+| Total | Both prefixes | 935 | 935 | 120,384,837 |
+
+| Information file | Rows | Contents and use |
+|---|---:|---|
+| `metadata.tsv` | 935 | Final export inventory joined by `filename`, with accession filenames, organism/taxid, resolved taxonomy ranks, selection rules, input/output sizes, GC percentage, organelle type, and original database provenance |
+| `source_metadata.tsv` | 935 | Selected original NCBI records, including accession/version, nuccore UID, title, organelle qualifier, topology, sequence length, organism/taxid, original FASTA path, download status, dates, and available sample/publication fields |
+| `source_audit.tsv` | 17 | Manual source quality review with accession, action, reason, and evidence URL. Sixteen records were excluded and one retained with a caution |
+| `selection.tsv` | 16,540 | Candidate inventory with selected status, exclusion reason, host group, original/resolved taxids, taxonomy ranks, order/family grouping keys, length, and fraction of bases outside ACGT |
+| `provenance.json` | Not applicable | Source database path and checksums, exporter/taxonomy checksums, host caps, source exclusions, and exported genome/base totals |
+
+| Host group in selected records | MITO | PLASTID | Total |
 |---|---:|---:|---:|
-| Selected genomes | 677 | 258 | 935 |
-| Bases | 77,598,909 | 42,785,928 | 120,384,837 |
-| Metazoa hosts | 100 | 0 | 100 |
-| Viridiplantae hosts | 100 | 100 | 200 |
-| Fungi hosts | 100 | 0 | 100 |
-| Other host groups | 377 | 158 | 535 |
+| Metazoa | 100 | 0 | 100 |
+| Viridiplantae | 100 | 100 | 200 |
+| Fungi | 100 | 0 | 100 |
+| Other groups | 377 | 158 | 535 |
 
-The host groups in this table follow the categories in `selection.tsv` and are not viral/cellular labels. `source_metadata.tsv` contains information about the selected original records. `source_audit.tsv` documents the quality review of the original data, with 16 records excluded and one retained with a caution. `selection.tsv` records the selection of 935 genomes from 16,540 candidates, and `provenance.json` describes the original data and selection rules. These supporting files are also recorded in the input inventory to support reproducibility checks. Thus, these 935 genomes are a selected snapshot rather than all organelle genomes in GenBank. The “complete genome” descriptions in the original titles have not been independently revalidated through a separate experiment.
+- **What they are:** MITO contains mitochondrial genomes, and PLASTID contains plastid genomes, including chloroplast genomes.
+- **Original directory:** `/home/fschulz/share/hyejong/genomes-training/organelle_host_balanced_2026-09-10/`.
+- **Sequence files:** `fna/MITO__*.fna` and `fna/PLASTID__*.fna`. Each file contains one genome as one FASTA record.
+- **Host balance:** The host counts in the table are selection categories, not model labels. The policy caps each of Metazoa, Viridiplantae, and Fungi at 100 per organelle type.
+- **How sequences are identified:** FASTA headers begin with the original NCBI accession. The pipeline checks that this accession agrees with the filename, then creates an ID such as `MITO__<accession>`. All 935 filenames match the metadata inventory, and sequence lengths were previously verified against `output_fasta_bp`.
+- **How genomes were selected:** The snapshot uses GenBank sequences and NCBI Taxonomy. Selection balances host orders and families, then favors fewer ambiguous bases and longer sequences. It also inherits an earlier reduction by host genus.
+- **How to interpret quality:** `complete genome (source title)` means the original title describes the sequence as complete. It does not mean completeness was independently validated by this project. These 935 genomes are a selected snapshot, not all organelle genomes in GenBank.
+- **Which paths are actually read:** The pipeline reads the exported FASTA files. Older FASTA and database paths in supporting metadata explain where the snapshot came from.
 
-The Cellular/PHAGE snapshots in `/home/fschulz/share/hyejong/genomes-training` include `metadata.tsv` alongside the FASTA files, so their IDs and taxonomy are based on the corresponding snapshot metadata. `/media/shared-expansion/db/gv-exports/labels.tsv` is used for exact ID matching of NCLDV/Mirus taxonomy.
 
-Verification of the actual matches found that 8,025 of 17,782 NCLDV genomes, comprising 277,888 records in total, and 1,473 of 1,677 Mirus genomes, comprising 33,987 records in total, matched `labels.tsv` exactly. To extend genus splitting to more NCLDV genomes, the genus derived by majority assignment in `old/genome_taxonomy.tsv` is used as supplementary information **only for split grouping**. Prioritizing authoritative exact labels and using supplementary labels as a fallback groups 15,069 NCLDV genomes into 2,734 usable genus groups. The remaining genomes without genus assignments fall back to grouping by genome and similarity. This provisional taxonomy is not used as ground truth for taxonomy models.
+#### NCLDV and MIRUS
 
-The PHAGE snapshot is neither the full MetaVR phage collection nor a set of representatives per vOTU. Its original `metadata.tsv` shows that all 2,612 rows have `selection_scope=genus_representative` and `selection_rank=1`. In other words, one best uViG was selected in advance from candidates assigned to each ICTV genus, ranked by quality, completeness, contamination, and length. Candidates include every quality tier, so the final 2,612 genomes include some Medium/Low/Not-determined entries as well as Complete/HQ entries. The full sequence of each selected uViG is used without trimming or subsampling.
+| Prefix | Original FASTA path | Genomes | FASTA records | Bases |
+|---|---|---:|---:|---:|
+| NCLDV | `/media/shared-expansion/db/gv-exports/NCLDV.fna` | 17,782 | 277,888 | 4,340,695,660 |
+| MIRUS | `/media/shared-expansion/db/gv-exports/MIRUS.fna` | 1,677 | 33,987 | 434,193,248 |
 
-The PHAGE snapshot is an existing collection of `.fna` files selected from MetaVR. A previous comparison with the original metadata found that all 2,612 uViGs were present in MetaVR, of which 2,143 were Complete/HQ. **However, this pipeline does not use the MetaVR DuckDB or MetaVR Other-virus candidates as inputs.**
+| Information file | Rows | Contents and current pipeline use |
+|---|---:|---|
+| `labels.tsv` | 190,317 | Headerless file with two tab-separated fields: prefixed ID and a lineage separated by vertical bars. Read for authoritative exact ID taxonomy of NCLDV/MIRUS only |
+| `old/genome_taxonomy.tsv` | 19,459 | One row per genome, covering 17,782 NCLDV and 1,677 MIRUS genomes. Fields include `genome`, `group`, taxonomy ranks, `taxonomy_majority`, and `taxonomy_strict`. Read as provisional fallback metadata |
+| `old/taxonomy_lookup.tsv` | 311,875 | Record inventory covering the combined NCLDV/MIRUS contigs, with `header`, `gid`, `genome`, `group`, taxonomy ranks, `contig_len_bp`, majority taxonomy, and detailed assignment support. Inspected for documentation but not read by this pipeline |
 
-Here, `PHAGE` is only a file prefix and does not imply that the dataset consists exclusively of bacteriophages. This snapshot contains 1,117 entries with known Bacteria hosts, 311 with Eukaryota hosts, 56 with Archaea hosts, and 1,128 with unclear hosts. The sub model's PHAGE class is therefore limited to this selected PHAGE snapshot and is not a representative sample of all viruses. This holdout alone cannot support claims about generalization to other types of viruses.
+- **What they are:** These are the conventional NCLDV and Mirus viral genome datasets, separate from EVE sequences inside host genomes.
+- **Original directory:** `/media/shared-expansion/db/gv-exports/`.
+- **NCLDV sequence file:** `/media/shared-expansion/db/gv-exports/NCLDV.fna`, containing 17,782 genomes, 277,888 records, and 4,340,695,660 bp.
+- **MIRUS sequence file:** `/media/shared-expansion/db/gv-exports/MIRUS.fna`, containing 1,677 genomes, 33,987 records, and 434,193,248 bp.
+- **How sequences are identified:** Each large FASTA holds contigs from many genomes. Headers such as `NCLDV__<genome_id>|<contig_id>` identify each genome and contig. The pipeline reads these IDs directly without permanently copying each genome into a separate FASTA file.
+- **Exact taxonomy coverage:** Although `labels.tsv` contains 8,570 NCLDV keys and 3,013 MIRUS keys, only 8,025 NCLDV genomes and 1,473 MIRUS genomes match the current FASTA inputs exactly.
+- **Other prefixes in `labels.tsv`:** BAC, ARC, PHAGE, PPV, MITO, PLASTID, EUK, and CRESS are also present. Their entries do not replace the snapshot metadata used by this pipeline or enable additional input sources.
+- **How fallback taxonomy is used:** It helps group more NCLDV genomes by genus for splitting. Previously verified assignments place 15,069 NCLDV genomes into 2,734 usable genus groups. Genomes without a usable genus use genome and similarity grouping. Provisional taxonomy can appear in the manifest for either source, but is not accepted as a taxonomy training target.
+- **How MIRUS is split:** MIRUS uses groups of similar genomes based on ANI and aligned fraction, rather than genus labels.
+
+
+#### EVE NCLDV and EVE Mirus
+
+| Configured source | FASTA prefix | Host grouping IDs | EVE records | Bases |
+|---|---|---:|---:|---:|
+| EVE_NCLDV | `EVE-NCLDV__` | 447 | 1,750 | 84,664,372 |
+| EVE_MIRUS | `EVE-MIRUS__` | 81 | 312 | 13,997,657 |
+
+- **What they are:** EVE sequences are viral sequence regions embedded in host genomes. One host assembly can contain several EVE regions.
+- **Original sequence file:** `/media/shared-expansion/db/gv-exports/eve_candidates_derep95.fna`.
+- **How the two types are selected:** `EVE_NCLDV` reads headers beginning with `EVE-NCLDV__`. `EVE_MIRUS` reads headers beginning with `EVE-MIRUS__`.
+- **What the counts mean:** Host grouping IDs represent host assemblies rather than independent viral genomes.
+- **Information files:** No dedicated EVE TSV was found in the export directory or its `old/` subdirectory. The nearby taxonomy TSVs do not provide an EVE metadata match used by this pipeline.
+- **Where the identifying information comes from:** The FASTA header gives the host assembly and EVE region. Region annotations can include scaffold, start/end coordinates, tier, and confidence. The full original header is kept in the manifest.
+- **How records are grouped:** The pipeline normalizes the host assembly ID and removes the `_eves` suffix. All EVE regions from the same host assembly stay in the same split.
+- **How labels are assigned:** Main/sub labels come from the configured EVE source. Both enabled EVE sources have missing taxonomy in the current manifest, so they are used for main/sub classification but excluded from taxonomy training.
+- **Disabled EVE_PPV data:** The same FASTA also contains 18,686 `EVE-PPV__` records, totaling 499,982,135 bp across 861 host grouping IDs. `EVE_PPV` is disabled in `configs/data_sources.yaml` while its subgroup role and possible label noise await review. These records are excluded from main and sub datasets.
+
+
+#### PHAGE
+
+| Recorded quality | uViGs |
+|---|---:|
+| Complete | 508 |
+| High-quality | 1,635 |
+| Medium-quality | 193 |
+| Low-quality | 222 |
+| Not-determined | 54 |
+| Total | 2,612 |
+
+- **What it is:** A selected viral snapshot containing one best uViG per assigned ICTV genus. A uViG is the viral genome entry used by this dataset.
+- **Original directory:** `/home/fschulz/share/hyejong/genomes-training/metavr_phage_genera_all_quality_2026-09-04/`.
+- **Sequence files:** `fna/PHAGE__*.fna`. There are 2,612 files, each with one uViG record, totaling 114,607,421 bp.
+- **Information file:** `metadata.tsv` contains 2,612 rows, and its filenames match the FASTA files exactly.
+- **How sequences are identified:** Headers use `PHAGE__<uvig>|record_1|img_contig_oid=<source_contig_id>`. The pipeline matches metadata by filename and uses `uvig` as the genome ID.
+- **What the metadata provides:** Viral taxonomy, ICTV genus, vOTU, quality, completeness, contamination, genome type, topology, host taxonomy, host assignment method, sequence sizes, and source information.
+- **How representatives were selected:** All rows have `selection_scope=genus_representative` and `selection_rank=1`. Selection prioritizes quality, completeness, lower contamination, length, and uViG ID. Full selected sequences are retained without subsampling.
+- **How records are grouped for splitting:** Entries with the same `votu` stay together. A vOTU identifies a group of similar viral sequences. When it is missing, the pipeline uses the genome ID. Selection by ICTV genus and split grouping by vOTU serve different purposes.
+- **Host distribution:** 1,117 entries have Bacteria hosts, 311 have Eukaryota hosts, 56 have Archaea hosts, and 1,128 have unspecified host taxonomy. Host assignment methods include VirusHostDB, iPHoP, isolate taxonomy, and vOTU.
+- **How to interpret the PHAGE label:** The prefix does not mean that every entry is a bacteriophage. The sub model's PHAGE class represents this selected snapshot. It is not the whole MetaVR collection, and this holdout alone cannot establish performance on other virus types.
+- **Which inputs are actually read:** The pipeline reads the existing FASTA files and `metadata.tsv`. The MetaVR database path in metadata records their origin. The pipeline does not read the MetaVR DuckDB or use MetaVR Other-virus candidates.
 
 ### Why a new FASTA file is not created for every prefix or genome
 
@@ -139,7 +239,7 @@ Randomly shuffling chunks before splitting can place nearly identical fragments 
 
 - ARC/BAC/EUK/MITO/PLASTID: All contigs from the same genome form one group. MITO/PLASTID have one record per file, but follow the same principle.
 - NCLDV: When the taxonomic genus is clear, the entire genus forms one group. Inference therefore evaluates whether NCLDV recognition generalizes to genera unseen during training.
-- Conventional Mirus: First combine all contigs from the same genome to calculate ANI and AF across whole genomes using skani. Connect genomes meeting both `ANI ≥95%` and `AF ≥85%` for the shorter genome, and place each entire connected component in the same split.
+- Mirus: First combine all contigs from the same genome to calculate ANI and AF across whole genomes using skani. Connect genomes meeting both `ANI ≥95%` and `AF ≥85%` for the shorter genome, and place each entire connected component in the same split.
 - EVE NCLDV/Mirus: All loci from the same host assembly belong to one split.
 - PHAGE: Entries with the same `vOTU` stay together. A vOTU is an ID for a group of similar viral sequences. If no vOTU is available, use the genome ID for each `uvig`.
 
