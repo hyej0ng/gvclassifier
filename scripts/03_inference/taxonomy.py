@@ -131,7 +131,13 @@ def main():
         raise ValueError("Different master split")
     names = meta["taxon_names"]
     threshold = meta["taxonomy"]["unknown_probability_threshold"]
-    temperature = json.loads((run / "calibration.json").read_text())["temperature"]
+    calibration_path = run / "calibration.json"
+    calibrated = calibration_path.is_file()
+    temperature = float(json.loads(calibration_path.read_text())["temperature"]) if calibrated else 1.0
+    if not np.isfinite(temperature) or temperature <= 0:
+        raise ValueError("Calibration temperature must be finite and positive")
+    calibration = {"applied": calibrated, "temperature": temperature,
+                   "source": "calibration.json" if calibrated else "uncalibrated_missing_file"}
     path = PROJECT_ROOT / "data/preprocessed" / task / "inference.csv.gz"
     output = PROJECT_ROOT / "results/taxonomy" / (run.name + "_" + timestamp())
     output.mkdir(parents=True)
@@ -139,6 +145,10 @@ def main():
     tee.start()
     started = print_run_header(task, [path, run], output)
     try:
+        print(f"[CALIBRATION] applied={calibrated} | temperature={temperature} | source={calibration['source']}")
+        if not calibrated:
+            print("[INFO] calibration.json is absent; evaluating best.pt without probability calibration (temperature=1).")
+        write_json(output / "calibration_status.json", calibration)
         data = load_dataset("csv", data_files=str(path), split="train")
         frame = data.select_columns(["labels", "sub_labels", "source", "genome_id", "contig_id",
                                      "split_group", "valid_length", "chunk_id"]).to_pandas()
@@ -165,7 +175,7 @@ def main():
             predicted = probabilities.argmax(1)
             accepted = probabilities.max(1) >= threshold
             known = truth >= 0
-            report = {"threshold_frozen_before_inference": threshold, "known_n": int(known.sum()),
+            report = {"calibration": calibration, "threshold_frozen_before_inference": threshold, "known_n": int(known.sum()),
                       "unseen_n": int((~known).sum()), "prediction_coverage": float(accepted.mean()),
                       "unknown_rejection_rate": float((~accepted[~known]).mean()) if (~known).any() else None,
                       "known_unconditional_accuracy": float(((predicted == truth) & accepted)[known].mean()) if known.any() else None}
