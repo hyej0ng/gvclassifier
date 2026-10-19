@@ -546,6 +546,8 @@ python scripts/03_inference/taxonomy.py \
 
 For Mirus, replace `NCLDV` with `MIRUS`.
 
+Taxonomy inference can also use an interrupted run once `best.pt` and `run_metadata.json` have been saved. If `calibration.json` exists, its validation-fitted temperature is used; otherwise inference runs without probability calibration (`temperature=1`). The selected mode is recorded in the log, `calibration_status.json`, and each metrics JSON. The unknown probability threshold remains unchanged, so prediction coverage and unknown rejection can differ between calibrated and uncalibrated runs.
+
 ## 10. What to change before execution
 
 For the first baseline, keeping most default values is recommended. If changes are needed, review only these two files.
