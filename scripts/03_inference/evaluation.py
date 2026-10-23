@@ -15,7 +15,7 @@ def write_json(path, value):
     temporary.replace(path)
 
 LABELS = {"main": ["Cellular", "Viral"],
-          "sub": ["NCLDV", "Mirus", "PHAGE"]}
+          "sub": ["NCLDV", "Mirus", "Other Virus"]}
 
 
 def normalize_scores(scores):
@@ -88,7 +88,7 @@ def plot_cm(report, names, path):
     cm = np.asarray(report["confusion_matrix"])
     proportion = cm / np.maximum(cm.sum(axis=1, keepdims=True), 1)
     fig, ax = plt.subplots(figsize=(7, 6))
-    ax.imshow(proportion, vmin=0, vmax=1, cmap="Blues")
+    ax.imshow(proportion, vmin=0, vmax=1, cmap="Greys")
     for i in range(len(names)):
         for j in range(len(names)):
             ax.text(j, i, f"{cm[i,j]:,}\n{100*proportion[i,j]:.1f}%", ha="center", va="center",
