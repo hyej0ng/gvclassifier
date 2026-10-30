@@ -1,0 +1,280 @@
+{
+  "runs": {
+    "main": "main1_10191118",
+    "sub": "sub1_10191116"
+  },
+  "inventory": [
+    {
+      "source": "EVE_NCLDV",
+      "split": "train",
+      "host_assemblies": 354,
+      "eve_records_loci": 1433,
+      "existing_contig_keys": 663,
+      "chunks": 13870,
+      "bases": 65140545
+    },
+    {
+      "source": "EVE_NCLDV",
+      "split": "validation",
+      "host_assemblies": 44,
+      "eve_records_loci": 135,
+      "existing_contig_keys": 61,
+      "chunks": 1644,
+      "bases": 7862960
+    },
+    {
+      "source": "EVE_NCLDV",
+      "split": "inference",
+      "host_assemblies": 45,
+      "eve_records_loci": 151,
+      "existing_contig_keys": 59,
+      "chunks": 1990,
+      "bases": 9547726
+    },
+    {
+      "source": "EVE_NCLDV",
+      "split": "total",
+      "host_assemblies": 443,
+      "eve_records_loci": 1719,
+      "existing_contig_keys": 783,
+      "chunks": 17504,
+      "bases": 82551231
+    },
+    {
+      "source": "EVE_MIRUS",
+      "split": "train",
+      "host_assemblies": 64,
+      "eve_records_loci": 220,
+      "existing_contig_keys": 116,
+      "chunks": 2244,
+      "bases": 10609003
+    },
+    {
+      "source": "EVE_MIRUS",
+      "split": "validation",
+      "host_assemblies": 7,
+      "eve_records_loci": 31,
+      "existing_contig_keys": 20,
+      "chunks": 197,
+      "bases": 914731
+    },
+    {
+      "source": "EVE_MIRUS",
+      "split": "inference",
+      "host_assemblies": 10,
+      "eve_records_loci": 28,
+      "existing_contig_keys": 16,
+      "chunks": 295,
+      "bases": 1409853
+    },
+    {
+      "source": "EVE_MIRUS",
+      "split": "total",
+      "host_assemblies": 81,
+      "eve_records_loci": 279,
+      "existing_contig_keys": 152,
+      "chunks": 2736,
+      "bases": 12933587
+    }
+  ],
+  "saved_metrics": [
+    {
+      "task": "main",
+      "run": "main1_10191118",
+      "source": "EVE_NCLDV",
+      "level": "chunk",
+      "n": 1990,
+      "correct": 1913,
+      "accuracy_recall": 0.9613065326633166,
+      "predicted_0": 77,
+      "predicted_1": 1913
+    },
+    {
+      "task": "main",
+      "run": "main1_10191118",
+      "source": "EVE_MIRUS",
+      "level": "chunk",
+      "n": 295,
+      "correct": 272,
+      "accuracy_recall": 0.9220338983050848,
+      "predicted_0": 23,
+      "predicted_1": 272
+    },
+    {
+      "task": "main",
+      "run": "main1_10191118",
+      "source": "EVE_NCLDV",
+      "level": "contig",
+      "n": 59,
+      "correct": 50,
+      "accuracy_recall": 0.847457627118644,
+      "predicted_0": 9,
+      "predicted_1": 50
+    },
+    {
+      "task": "main",
+      "run": "main1_10191118",
+      "source": "EVE_MIRUS",
+      "level": "contig",
+      "n": 16,
+      "correct": 14,
+      "accuracy_recall": 0.875,
+      "predicted_0": 2,
+      "predicted_1": 14
+    },
+    {
+      "task": "main",
+      "run": "main1_10191118",
+      "source": "EVE_NCLDV",
+      "level": "genome",
+      "n": 45,
+      "correct": 38,
+      "accuracy_recall": 0.8444444444444444,
+      "predicted_0": 7,
+      "predicted_1": 38
+    },
+    {
+      "task": "main",
+      "run": "main1_10191118",
+      "source": "EVE_MIRUS",
+      "level": "genome",
+      "n": 10,
+      "correct": 9,
+      "accuracy_recall": 0.9,
+      "predicted_0": 1,
+      "predicted_1": 9
+    },
+    {
+      "task": "sub",
+      "run": "sub1_10191116",
+      "source": "EVE_NCLDV",
+      "level": "chunk",
+      "n": 1990,
+      "correct": 1913,
+      "accuracy_recall": 0.9613065326633166,
+      "predicted_0": 1913,
+      "predicted_1": 51,
+      "predicted_2": 26
+    },
+    {
+      "task": "sub",
+      "run": "sub1_10191116",
+      "source": "EVE_MIRUS",
+      "level": "chunk",
+      "n": 295,
+      "correct": 225,
+      "accuracy_recall": 0.7627118644067796,
+      "predicted_0": 65,
+      "predicted_1": 225,
+      "predicted_2": 5
+    },
+    {
+      "task": "sub",
+      "run": "sub1_10191116",
+      "source": "EVE_NCLDV",
+      "level": "contig",
+      "n": 59,
+      "correct": 54,
+      "accuracy_recall": 0.9152542372881356,
+      "predicted_0": 54,
+      "predicted_1": 2,
+      "predicted_2": 3
+    },
+    {
+      "task": "sub",
+      "run": "sub1_10191116",
+      "source": "EVE_MIRUS",
+      "level": "contig",
+      "n": 16,
+      "correct": 8,
+      "accuracy_recall": 0.5,
+      "predicted_0": 8,
+      "predicted_1": 8,
+      "predicted_2": 0
+    },
+    {
+      "task": "sub",
+      "run": "sub1_10191116",
+      "source": "EVE_NCLDV",
+      "level": "genome",
+      "n": 45,
+      "correct": 40,
+      "accuracy_recall": 0.8888888888888888,
+      "predicted_0": 40,
+      "predicted_1": 2,
+      "predicted_2": 3
+    },
+    {
+      "task": "sub",
+      "run": "sub1_10191116",
+      "source": "EVE_MIRUS",
+      "level": "genome",
+      "n": 10,
+      "correct": 5,
+      "accuracy_recall": 0.5,
+      "predicted_0": 5,
+      "predicted_1": 5,
+      "predicted_2": 0
+    }
+  ],
+  "locus_metrics": [
+    {
+      "task": "main",
+      "run": "main1_10191118",
+      "source": "EVE_NCLDV",
+      "level": "contig_record_id",
+      "n": 151,
+      "correct": 134,
+      "accuracy_recall": 0.8874172185430463,
+      "predicted_0": 17,
+      "predicted_1": 134
+    },
+    {
+      "task": "main",
+      "run": "main1_10191118",
+      "source": "EVE_MIRUS",
+      "level": "contig_record_id",
+      "n": 28,
+      "correct": 24,
+      "accuracy_recall": 0.8571428571428571,
+      "predicted_0": 4,
+      "predicted_1": 24
+    },
+    {
+      "task": "sub",
+      "run": "sub1_10191116",
+      "source": "EVE_NCLDV",
+      "level": "contig_record_id",
+      "n": 151,
+      "correct": 141,
+      "accuracy_recall": 0.9337748344370861,
+      "predicted_0": 141,
+      "predicted_1": 4,
+      "predicted_2": 6
+    },
+    {
+      "task": "sub",
+      "run": "sub1_10191116",
+      "source": "EVE_MIRUS",
+      "level": "contig_record_id",
+      "n": 28,
+      "correct": 19,
+      "accuracy_recall": 0.6785714285714286,
+      "predicted_0": 9,
+      "predicted_1": 19,
+      "predicted_2": 0
+    }
+  ],
+  "verification": {
+    "all_saved_metrics_match_prediction_csv": true,
+    "all_eve_holdout_chunks_mapped_once_per_task": true,
+    "all_locus_lengths_match_manifest": true
+  },
+  "notes": [
+    "Primary contig results use original record_id (one FASTA EVE locus).",
+    "Existing contig results group by genome_id and contig_id; some IDs collide.",
+    "Genome means EVE records grouped within a host assembly, not its whole genome.",
+    "Source-subset accuracy equals target-class recall; source-specific precision is not estimated.",
+    "Main and sub were evaluated independently; these are not cascade metrics."
+  ]
+}

@@ -1,0 +1,11 @@
+source,input_records,kept_records,input_unique_keys,kept_unique_keys,input_collision_groups,input_collision_records,input_merged_excess,kept_collision_groups,kept_collision_records,kept_merged_excess
+ARC,9460,9460,9460,9460,0,0,0,0,0,0
+BAC,225723,225486,225723,225486,0,0,0,0,0,0
+EUK,1366361,797449,1366361,797449,0,0,0,0,0,0
+MITO,677,677,677,677,0,0,0,0,0,0
+PLASTID,258,257,258,257,0,0,0,0,0,0
+NCLDV,277888,277842,277888,277842,0,0,0,0,0,0
+MIRUS,33987,33930,33987,33930,0,0,0,0,0,0
+EVE_NCLDV,1750,1719,810,783,153,1093,940,153,1089,936
+EVE_MIRUS,312,279,185,152,21,148,127,21,148,127
+PHAGE,2612,2610,2612,2610,0,0,0,0,0,0

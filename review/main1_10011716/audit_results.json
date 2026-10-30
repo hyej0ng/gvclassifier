@@ -1,0 +1,247 @@
+{
+  "recomputed": {
+    "chunk": {
+      "n": 406682,
+      "confusion_matrix": [
+        [
+          263585,
+          17739
+        ],
+        [
+          1085,
+          124273
+        ]
+      ],
+      "macro_f1": 0.9475595610122188,
+      "accuracy": 0.9537132206490575,
+      "nll": 0.16861432790756226,
+      "matches_saved_confusion_matrix": true,
+      "saved_macro_f1_difference": 0.0,
+      "uncalibrated_nll": 0.15896479785442352,
+      "temperature_prediction_changes": 0
+    },
+    "contig": {
+      "n": 69259,
+      "confusion_matrix": [
+        [
+          38365,
+          3622
+        ],
+        [
+          135,
+          27137
+        ]
+      ],
+      "macro_f1": 0.9442901977231987,
+      "accuracy": 0.9457543423959341,
+      "nll": 0.17662152297535424,
+      "matches_saved_confusion_matrix": true,
+      "saved_macro_f1_difference": 0.0,
+      "uncalibrated_nll": 0.16631626600590727,
+      "temperature_prediction_changes": 0
+    },
+    "genome": {
+      "n": 2335,
+      "confusion_matrix": [
+        [
+          315,
+          0
+        ],
+        [
+          19,
+          2001
+        ]
+      ],
+      "macro_f1": 0.9829994991625246,
+      "accuracy": 0.99186295503212,
+      "nll": 0.03608862559544063,
+      "matches_saved_confusion_matrix": true,
+      "saved_macro_f1_difference": 0.0,
+      "uncalibrated_nll": 0.04920896221338602,
+      "temperature_prediction_changes": 0
+    }
+  },
+  "genome_source_accuracy": {
+    "ARC": {
+      "count": 17,
+      "mean": 1.0
+    },
+    "BAC": {
+      "count": 199,
+      "mean": 1.0
+    },
+    "EUK": {
+      "count": 12,
+      "mean": 1.0
+    },
+    "EVE_MIRUS": {
+      "count": 10,
+      "mean": 0.9
+    },
+    "EVE_NCLDV": {
+      "count": 45,
+      "mean": 0.8444444444444444
+    },
+    "MIRUS": {
+      "count": 157,
+      "mean": 1.0
+    },
+    "MITO": {
+      "count": 66,
+      "mean": 1.0
+    },
+    "NCLDV": {
+      "count": 1549,
+      "mean": 0.9987088444157521
+    },
+    "PHAGE": {
+      "count": 259,
+      "mean": 0.9652509652509652
+    },
+    "PLASTID": {
+      "count": 21,
+      "mean": 1.0
+    }
+  },
+  "source_macro_accuracy": 0.9708404254111163,
+  "equal_split_group_accuracy": 0.9832579185520361,
+  "loss": {
+    "binary_label_smoothing_floor": 0.11690684913753106,
+    "first_validation_loss": 0.1693773120641708,
+    "minimum_validation_loss": 0.1501097977161407,
+    "last_validation_loss": 0.1628126949071884
+  },
+  "manifest": {
+    "genome_id_cross_split": 0,
+    "base_group_id_cross_split": 0,
+    "split_group_cross_split": 0,
+    "canonical_sha256_cross_split": 0,
+    "similarity_edges": {
+      "total": 10243,
+      "both_groups_active": 10239,
+      "cross_split": 0,
+      "examples": []
+    },
+    "NCLDV_taxonomy_genus": {
+      "unique": 2734,
+      "cross_split": 0,
+      "scope": "usable genera assigned to NCLDV_GENUS base groups; unknown placeholders excluded"
+    },
+    "EVE_NCLDV_host_assembly_id": {
+      "unique": 443,
+      "cross_split": 0
+    },
+    "EVE_MIRUS_host_assembly_id": {
+      "unique": 81,
+      "cross_split": 0
+    },
+    "PHAGE_votu": {
+      "unique": 2598,
+      "cross_split": 0
+    },
+    "NCLDV_genus_grouped_genomes_by_split": {
+      "inference": {
+        "count": 1549,
+        "sum": 1237
+      },
+      "train": {
+        "count": 14482,
+        "sum": 12405
+      },
+      "validation": {
+        "count": 1748,
+        "sum": 1426
+      }
+    }
+  },
+  "fingerprints": {
+    "data/manifests/genomes.tsv.gz": {
+      "sha256": "143cf197b74f72f3cb9903841735128792cddd32fc5f22afe11c3bc4dc42619c",
+      "matches": true
+    },
+    "runs/main/main1_10011716/best.pt": {
+      "sha256": "e03fb9a4df1fd9c3265cae905b03d748d308595dc587c35f63d7067e7f09fbda",
+      "matches": true
+    },
+    "data/preprocessed/main/train.csv.gz": {
+      "sha256": "e213ca139129eb1b7d339efb0fb2ace08f94eb41f89b85c0a0e7236982e87dcc",
+      "matches": true
+    },
+    "data/preprocessed/main/validation.csv.gz": {
+      "sha256": "239892eb34a8d4aff042cf9fc382bd8d003592fb1c324ed2e7df2f668e81d3a7",
+      "matches": true
+    },
+    "data/preprocessed/main/inference.csv.gz": {
+      "sha256": "f20ecb7c3801a4d7b3db4a8184babbb22b0c4a8b2bfaf1282311ace02eeb17b1",
+      "matches": true
+    },
+    "train_matches_run": true,
+    "validation_matches_run": true,
+    "inference_matches_result": true
+  },
+  "independent_chunk_audit": {
+    "counts": {
+      "inference": {
+        "chunks": 406682,
+        "bases": 1843568846
+      },
+      "validation": {
+        "chunks": 418195,
+        "bases": 1788345400
+      },
+      "train": {
+        "chunks": 3602759,
+        "bases": 13875009979
+      }
+    },
+    "cross_split_canonical_hash_matching_rows": {
+      "inference__validation": 0,
+      "inference__train": 0,
+      "validation__train": 0
+    },
+    "manifest_mismatching_rows": {
+      "inference": 0,
+      "validation": 0,
+      "train": 0
+    },
+    "inference_prediction_order_and_labels_match": true,
+    "id_overlaps": {
+      "inference__validation": {
+        "genome_id": 0,
+        "split_group": 0,
+        "record_id": 0
+      },
+      "inference__train": {
+        "genome_id": 0,
+        "split_group": 0,
+        "record_id": 0
+      },
+      "validation__train": {
+        "genome_id": 0,
+        "split_group": 0,
+        "record_id": 0
+      }
+    }
+  },
+  "supplement": {
+    "usable_NCLDV_genus_cross_split": 0,
+    "usable_NCLDV_genus_unique": 2734,
+    "unknown_NCLDV_genus_names": [
+      "",
+      "NCLDV",
+      "g_"
+    ],
+    "NCLDV_holdout_genus_grouped_accuracy": {
+      "false": {
+        "count": 312,
+        "sum": 310,
+        "mean": 0.9935897435897436
+      },
+      "true": {
+        "count": 1237,
+        "sum": 1237,
+        "mean": 1.0
+      }
+    }
+  }
+}

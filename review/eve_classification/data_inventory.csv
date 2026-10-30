@@ -1,0 +1,9 @@
+source,split,host_assemblies,eve_records_loci,existing_contig_keys,chunks,bases
+EVE_NCLDV,train,354,1433,663,13870,65140545
+EVE_NCLDV,validation,44,135,61,1644,7862960
+EVE_NCLDV,inference,45,151,59,1990,9547726
+EVE_NCLDV,total,443,1719,783,17504,82551231
+EVE_MIRUS,train,64,220,116,2244,10609003
+EVE_MIRUS,validation,7,31,20,197,914731
+EVE_MIRUS,inference,10,28,16,295,1409853
+EVE_MIRUS,total,81,279,152,2736,12933587

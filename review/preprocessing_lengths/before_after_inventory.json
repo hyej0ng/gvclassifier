@@ -1,0 +1,143 @@
+{
+  "before": {
+    "ARC": {
+      "records": 9460,
+      "bases": 302682872,
+      "genomes": 172,
+      "unique_contig_ids": 9460
+    },
+    "BAC": {
+      "records": 225723,
+      "bases": 6131933134,
+      "genomes": 1991,
+      "unique_contig_ids": 225723
+    },
+    "EUK": {
+      "records": 1366361,
+      "bases": 7677494753,
+      "genomes": 130,
+      "unique_contig_ids": 1366361
+    },
+    "MITO": {
+      "records": 677,
+      "bases": 77598909,
+      "genomes": 677,
+      "unique_contig_ids": 677
+    },
+    "PLASTID": {
+      "records": 258,
+      "bases": 42785928,
+      "genomes": 258,
+      "unique_contig_ids": 258
+    },
+    "NCLDV": {
+      "records": 277888,
+      "bases": 4340695660,
+      "genomes": 17782,
+      "unique_contig_ids": 274181
+    },
+    "MIRUS": {
+      "records": 33987,
+      "bases": 434193248,
+      "genomes": 1677,
+      "unique_contig_ids": 33987
+    },
+    "EVE_NCLDV": {
+      "records": 1750,
+      "bases": 84664372,
+      "genomes": 447,
+      "unique_contig_ids": 810
+    },
+    "EVE_MIRUS": {
+      "records": 312,
+      "bases": 13997657,
+      "genomes": 81,
+      "unique_contig_ids": 185
+    },
+    "PHAGE": {
+      "records": 2612,
+      "bases": 114607421,
+      "genomes": 2612,
+      "unique_contig_ids": 1
+    }
+  },
+  "after": {
+    "ARC": {
+      "records": 9460,
+      "bases": 302682872,
+      "genomes": 172,
+      "unique_contig_ids": 9460
+    },
+    "BAC": {
+      "records": 225486,
+      "bases": 6120147217,
+      "genomes": 1989,
+      "unique_contig_ids": 225486
+    },
+    "EUK": {
+      "records": 797449,
+      "bases": 5981333241,
+      "genomes": 110,
+      "unique_contig_ids": 797449
+    },
+    "MITO": {
+      "records": 677,
+      "bases": 77598909,
+      "genomes": 677,
+      "unique_contig_ids": 677
+    },
+    "PLASTID": {
+      "records": 257,
+      "bases": 42639904,
+      "genomes": 257,
+      "unique_contig_ids": 257
+    },
+    "NCLDV": {
+      "records": 277842,
+      "bases": 4339868072,
+      "genomes": 17779,
+      "unique_contig_ids": 274135
+    },
+    "MIRUS": {
+      "records": 33930,
+      "bases": 432653199,
+      "genomes": 1675,
+      "unique_contig_ids": 33930
+    },
+    "EVE_NCLDV": {
+      "records": 1719,
+      "bases": 82551231,
+      "genomes": 443,
+      "unique_contig_ids": 783
+    },
+    "EVE_MIRUS": {
+      "records": 279,
+      "bases": 12933587,
+      "genomes": 81,
+      "unique_contig_ids": 152
+    },
+    "PHAGE": {
+      "records": 2610,
+      "bases": 114515993,
+      "genomes": 2610,
+      "unique_contig_ids": 1
+    }
+  },
+  "splits": {
+    "train": {
+      "records": 1180999,
+      "genomes": 20923,
+      "unique_contig_ids": 1174888
+    },
+    "validation": {
+      "records": 99347,
+      "genomes": 2535,
+      "unique_contig_ids": 98730
+    },
+    "inference": {
+      "records": 69363,
+      "genomes": 2335,
+      "unique_contig_ids": 68748
+    }
+  }
+}

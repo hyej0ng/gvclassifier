@@ -1,0 +1,670 @@
+{
+  "prefix_totals": {
+    "ARC": {
+      "contigs": 9460,
+      "bases": 302682872,
+      "total": 65127,
+      "full_5kb": 54852,
+      "tail": 5235,
+      "rebalanced": 1630,
+      "short_contig": 3410
+    },
+    "BAC": {
+      "contigs": 225486,
+      "bases": 6120147217,
+      "total": 1335141,
+      "full_5kb": 1090442,
+      "tail": 126115,
+      "rebalanced": 38496,
+      "short_contig": 80088,
+      "lt500": 403
+    },
+    "EUK": {
+      "contigs": 797449,
+      "bases": 5981333241,
+      "total": 1838625,
+      "full_5kb": 1032415,
+      "rebalanced": 17674,
+      "tail": 57624,
+      "short_contig": 730912,
+      "lt500": 299516
+    },
+    "MITO": {
+      "contigs": 677,
+      "bases": 77598909,
+      "total": 15886,
+      "full_5kb": 15120,
+      "tail": 586,
+      "rebalanced": 180
+    },
+    "PLASTID": {
+      "contigs": 257,
+      "bases": 42639904,
+      "total": 8662,
+      "full_5kb": 8380,
+      "tail": 232,
+      "rebalanced": 50
+    },
+    "NCLDV": {
+      "contigs": 277842,
+      "bases": 4339868072,
+      "total": 1017441,
+      "full_5kb": 703140,
+      "tail": 213263,
+      "rebalanced": 73076,
+      "short_contig": 27962,
+      "lt500": 3
+    },
+    "MIRUS": {
+      "contigs": 33930,
+      "bases": 432653199,
+      "total": 102402,
+      "full_5kb": 65365,
+      "tail": 19621,
+      "rebalanced": 6228,
+      "short_contig": 11188
+    },
+    "EVE_NCLDV": {
+      "contigs": 1719,
+      "bases": 82551231,
+      "total": 17504,
+      "full_5kb": 15661,
+      "tail": 963,
+      "short_contig": 630,
+      "lt500": 138,
+      "rebalanced": 250
+    },
+    "EVE_MIRUS": {
+      "contigs": 279,
+      "bases": 12933587,
+      "total": 2736,
+      "full_5kb": 2427,
+      "tail": 218,
+      "rebalanced": 60,
+      "short_contig": 31,
+      "lt500": 16
+    },
+    "PHAGE": {
+      "contigs": 2610,
+      "bases": 114515993,
+      "total": 24112,
+      "full_5kb": 21289,
+      "tail": 1777,
+      "rebalanced": 426,
+      "short_contig": 620,
+      "lt500": 2
+    }
+  },
+  "split_totals": {
+    "train": {
+      "contigs": 1180999,
+      "bases": 13875009979,
+      "total": 3602759,
+      "full_5kb": 2365035,
+      "tail": 340329,
+      "rebalanced": 113762,
+      "short_contig": 783633,
+      "lt500": 300069
+    },
+    "validation": {
+      "contigs": 99347,
+      "bases": 1788345400,
+      "total": 418195,
+      "full_5kb": 312456,
+      "rebalanced": 12806,
+      "tail": 48223,
+      "short_contig": 44710,
+      "lt500": 3
+    },
+    "inference": {
+      "contigs": 69363,
+      "bases": 1843568846,
+      "total": 406682,
+      "full_5kb": 331600,
+      "tail": 37082,
+      "rebalanced": 11502,
+      "short_contig": 26498,
+      "lt500": 6
+    }
+  },
+  "quarantine_reasons": {
+    "BAC": {
+      "n_fraction_above_0.2": 67,
+      "cross_label_exact_fragment": 1,
+      "cellular_genome_is_viral_host:PHAGE:exact_host_species_name": 169
+    },
+    "EUK": {
+      "n_fraction_above_0.2": 969,
+      "cross_label_near_fragment": 3,
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 293281,
+      "cellular_genome_is_viral_host:PHAGE:exact_host_species_name": 6922,
+      "cellular_genome_is_viral_host:EVE_MIRUS:exact_assembly_accession": 995,
+      "cellular_genome_is_viral_host:EVE_MIRUS:exact_assembly_accession,EVE_NCLDV:exact_assembly_accession": 266742
+    },
+    "PLASTID": {
+      "cellular_genome_is_viral_host:PHAGE:exact_host_species_name": 1
+    },
+    "NCLDV": {
+      "cross_label_near_fragment": 44,
+      "canonical_sequence_label_conflict": 2
+    },
+    "MIRUS": {
+      "cross_label_near_fragment": 57
+    },
+    "EVE_NCLDV": {
+      "n_fraction_above_0.2": 18,
+      "cross_label_near_fragment": 5,
+      "cross_label_exact_fragment": 8
+    },
+    "EVE_MIRUS": {
+      "n_fraction_above_0.2": 33
+    },
+    "PHAGE": {
+      "canonical_sequence_label_conflict": 2
+    }
+  },
+  "examples": [
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000007185-1",
+      "contig_id": "ARC__AE009439.1",
+      "sequence_length": "1694969",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4969,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000007345-1",
+      "contig_id": "ARC__AE010299.1",
+      "sequence_length": "5751492",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          1492,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000019605-1",
+      "contig_id": "ARC__CP000968.1",
+      "sequence_length": "1590757",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          757,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000025505-1",
+      "contig_id": "ARC__CP001899.1",
+      "sequence_length": "2196266",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          1266,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000025665-1",
+      "contig_id": "ARC__CP001941.1",
+      "sequence_length": "1486778",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          1778,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000063445-1",
+      "contig_id": "ARC__AM114193.2",
+      "sequence_length": "3179916",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4916,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000214415-1",
+      "contig_id": "ARC__CP002737.1",
+      "sequence_length": "1854197",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4197,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000234805-1",
+      "contig_id": "ARC__CP003098.1",
+      "sequence_length": "2467972",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          2972,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000246735-1",
+      "contig_id": "ARC__CM001443.1",
+      "sequence_length": "2064136",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4136,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000246985-3",
+      "contig_id": "ARC__CP006670.1",
+      "sequence_length": "2215172",
+      "last_chunks": [
+        [
+          2586,
+          "rebalanced"
+        ],
+        [
+          2586,
+          "rebalanced"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000270325-1",
+      "contig_id": "ARC__BA000048.1",
+      "sequence_length": "1680938",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          938,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "validation",
+      "genome_id": "ARC__GCA-000446015-1",
+      "contig_id": "ARC__CP006646.1",
+      "sequence_length": "1750259",
+      "last_chunks": [
+        [
+          2629,
+          "rebalanced"
+        ],
+        [
+          2630,
+          "rebalanced"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000001.1",
+      "sequence_length": "29161",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4161,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000002.1",
+      "sequence_length": "11309",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          1309,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000003.1",
+      "sequence_length": "7535",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          2535,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000004.1",
+      "sequence_length": "5202",
+      "last_chunks": [
+        [
+          2601,
+          "rebalanced"
+        ],
+        [
+          2601,
+          "rebalanced"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000005.1",
+      "sequence_length": "1403",
+      "last_chunks": [
+        [
+          1403,
+          "short_contig"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000006.1",
+      "sequence_length": "1368",
+      "last_chunks": [
+        [
+          1368,
+          "short_contig"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000007.1",
+      "sequence_length": "334505",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4505,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000008.1",
+      "sequence_length": "315508",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          508,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__KL543983.1",
+      "sequence_length": "287535",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          2535,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000011.1",
+      "sequence_length": "161594",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          1594,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000012.1",
+      "sequence_length": "99814",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4814,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000013.1",
+      "sequence_length": "88578",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          3578,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000014.1",
+      "sequence_length": "72590",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          2590,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__JONQ01000015.1",
+      "sequence_length": "54766",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4766,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "inference",
+      "genome_id": "ARC__GCA-000711905-1",
+      "contig_id": "ARC__KL543984.1",
+      "sequence_length": "42715",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          2715,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000802205-2",
+      "contig_id": "ARC__CP012850.1",
+      "sequence_length": "3430706",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          706,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000806115-1",
+      "contig_id": "ARC__JWKQ01000001.1",
+      "sequence_length": "439877",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4877,
+          "tail"
+        ]
+      ]
+    },
+    {
+      "prefix": "ARC",
+      "split": "train",
+      "genome_id": "ARC__GCA-000806115-1",
+      "contig_id": "ARC__JWKQ01000002.1",
+      "sequence_length": "399153",
+      "last_chunks": [
+        [
+          5000,
+          "full_5kb"
+        ],
+        [
+          4153,
+          "tail"
+        ]
+      ]
+    }
+  ]
+}

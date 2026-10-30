@@ -1,0 +1,342 @@
+{
+  "manifest": "data/manifests/genomes.tsv.gz",
+  "sources": {
+    "ARC": {
+      "input_records": 9460,
+      "kept_records": 9460,
+      "input_unique_keys": 9460,
+      "kept_unique_keys": 9460,
+      "input_collision_groups": 0,
+      "input_collision_records": 0,
+      "input_merged_excess": 0,
+      "kept_collision_groups": 0,
+      "kept_collision_records": 0,
+      "kept_merged_excess": 0
+    },
+    "BAC": {
+      "input_records": 225723,
+      "kept_records": 225486,
+      "input_unique_keys": 225723,
+      "kept_unique_keys": 225486,
+      "input_collision_groups": 0,
+      "input_collision_records": 0,
+      "input_merged_excess": 0,
+      "kept_collision_groups": 0,
+      "kept_collision_records": 0,
+      "kept_merged_excess": 0
+    },
+    "EUK": {
+      "input_records": 1366361,
+      "kept_records": 797449,
+      "input_unique_keys": 1366361,
+      "kept_unique_keys": 797449,
+      "input_collision_groups": 0,
+      "input_collision_records": 0,
+      "input_merged_excess": 0,
+      "kept_collision_groups": 0,
+      "kept_collision_records": 0,
+      "kept_merged_excess": 0
+    },
+    "EVE_MIRUS": {
+      "input_records": 312,
+      "kept_records": 279,
+      "input_unique_keys": 185,
+      "kept_unique_keys": 152,
+      "input_collision_groups": 21,
+      "input_collision_records": 148,
+      "input_merged_excess": 127,
+      "kept_collision_groups": 21,
+      "kept_collision_records": 148,
+      "kept_merged_excess": 127,
+      "pipe_truncation_collision_groups": 21,
+      "distinct_sequence_collision_groups": 21
+    },
+    "EVE_NCLDV": {
+      "input_records": 1750,
+      "kept_records": 1719,
+      "input_unique_keys": 810,
+      "kept_unique_keys": 783,
+      "input_collision_groups": 153,
+      "input_collision_records": 1093,
+      "input_merged_excess": 940,
+      "kept_collision_groups": 153,
+      "kept_collision_records": 1089,
+      "kept_merged_excess": 936,
+      "pipe_truncation_collision_groups": 153,
+      "distinct_sequence_collision_groups": 153
+    },
+    "MIRUS": {
+      "input_records": 33987,
+      "kept_records": 33930,
+      "input_unique_keys": 33987,
+      "kept_unique_keys": 33930,
+      "input_collision_groups": 0,
+      "input_collision_records": 0,
+      "input_merged_excess": 0,
+      "kept_collision_groups": 0,
+      "kept_collision_records": 0,
+      "kept_merged_excess": 0
+    },
+    "MITO": {
+      "input_records": 677,
+      "kept_records": 677,
+      "input_unique_keys": 677,
+      "kept_unique_keys": 677,
+      "input_collision_groups": 0,
+      "input_collision_records": 0,
+      "input_merged_excess": 0,
+      "kept_collision_groups": 0,
+      "kept_collision_records": 0,
+      "kept_merged_excess": 0
+    },
+    "NCLDV": {
+      "input_records": 277888,
+      "kept_records": 277842,
+      "input_unique_keys": 277888,
+      "kept_unique_keys": 277842,
+      "input_collision_groups": 0,
+      "input_collision_records": 0,
+      "input_merged_excess": 0,
+      "kept_collision_groups": 0,
+      "kept_collision_records": 0,
+      "kept_merged_excess": 0
+    },
+    "PHAGE": {
+      "input_records": 2612,
+      "kept_records": 2610,
+      "input_unique_keys": 2612,
+      "kept_unique_keys": 2610,
+      "input_collision_groups": 0,
+      "input_collision_records": 0,
+      "input_merged_excess": 0,
+      "kept_collision_groups": 0,
+      "kept_collision_records": 0,
+      "kept_merged_excess": 0
+    },
+    "PLASTID": {
+      "input_records": 258,
+      "kept_records": 257,
+      "input_unique_keys": 258,
+      "kept_unique_keys": 257,
+      "input_collision_groups": 0,
+      "input_collision_records": 0,
+      "input_merged_excess": 0,
+      "kept_collision_groups": 0,
+      "kept_collision_records": 0,
+      "kept_merged_excess": 0
+    }
+  },
+  "collision_records_by_split": {
+    "EVE_MIRUS/inference": {
+      "records": 15,
+      "contig_keys": 3,
+      "collision_groups": 3,
+      "records_in_collision_groups": 15,
+      "merged_excess_records": 12
+    },
+    "EVE_MIRUS/train": {
+      "records": 120,
+      "contig_keys": 16,
+      "collision_groups": 16,
+      "records_in_collision_groups": 120,
+      "merged_excess_records": 104
+    },
+    "EVE_MIRUS/validation": {
+      "records": 13,
+      "contig_keys": 2,
+      "collision_groups": 2,
+      "records_in_collision_groups": 13,
+      "merged_excess_records": 11
+    },
+    "EVE_NCLDV/inference": {
+      "records": 107,
+      "contig_keys": 15,
+      "collision_groups": 15,
+      "records_in_collision_groups": 107,
+      "merged_excess_records": 92
+    },
+    "EVE_NCLDV/quarantine": {
+      "records": 4,
+      "contig_keys": 2,
+      "collision_groups": 1,
+      "records_in_collision_groups": 3,
+      "merged_excess_records": 2
+    },
+    "EVE_NCLDV/train": {
+      "records": 893,
+      "contig_keys": 123,
+      "collision_groups": 123,
+      "records_in_collision_groups": 893,
+      "merged_excess_records": 770
+    },
+    "EVE_NCLDV/validation": {
+      "records": 89,
+      "contig_keys": 15,
+      "collision_groups": 15,
+      "records_in_collision_groups": 89,
+      "merged_excess_records": 74
+    }
+  },
+  "examples": {
+    "EVE_NCLDV": [
+      {
+        "genome_id": "EVE_NCLDV__GCA-000327025-2",
+        "contig_id": "EVE_NCLDV__EVE_GCA_000327025_2",
+        "source_record_id": "EVE-NCLDV__GCA_000327025-2_eves|EVE_GCA_000327025_2|CAFC02015009_1_0-429_scaffold=GCA_000327025_2|CAFC02015009_1_start=0_end=429_tier=HIGH_confidence=0.8308",
+        "sequence_length": "429"
+      },
+      {
+        "genome_id": "EVE_NCLDV__GCA-000327025-2",
+        "contig_id": "EVE_NCLDV__EVE_GCA_000327025_2",
+        "source_record_id": "EVE-NCLDV__GCA_000327025-2_eves|EVE_GCA_000327025_2|CAFC02020580_1_0-174_scaffold=GCA_000327025_2|CAFC02020580_1_start=0_end=174_tier=HIGH_confidence=0.8513",
+        "sequence_length": "174"
+      },
+      {
+        "genome_id": "EVE_NCLDV__GCA-000327025-2",
+        "contig_id": "EVE_NCLDV__EVE_GCA_000327025_2",
+        "source_record_id": "EVE-NCLDV__GCA_000327025-2_eves|EVE_GCA_000327025_2|CAFC02077259_1_210-594_scaffold=GCA_000327025_2|CAFC02077259_1_start=210_end=594_tier=HIGH_confidence=0.8288",
+        "sequence_length": "384"
+      },
+      {
+        "genome_id": "EVE_NCLDV__GCA-000439335-1",
+        "contig_id": "EVE_NCLDV__EVE_GCA_000439335_1",
+        "source_record_id": "EVE-NCLDV__GCA_000439335-1_eves|EVE_GCA_000439335_1|AUPN01040516_1_330-694_scaffold=GCA_000439335_1|AUPN01040516_1_start=330_end=694_tier=HIGH_confidence=0.8319",
+        "sequence_length": "364"
+      }
+    ],
+    "EVE_MIRUS": [
+      {
+        "genome_id": "EVE_MIRUS__GCA-001462505-1",
+        "contig_id": "EVE_MIRUS__EVE_GCA_001462505_1",
+        "source_record_id": "EVE-MIRUS__GCA_001462505-1_eves|EVE_GCA_001462505_1|KQ758850_1_11971458-12026838_scaffold=GCA_001462505_1|KQ758850_1_start=11971458_end=12026838_tier=HIGH_confidence=0.8000",
+        "sequence_length": "55380"
+      },
+      {
+        "genome_id": "EVE_MIRUS__GCA-001462505-1",
+        "contig_id": "EVE_MIRUS__EVE_GCA_001462505_1",
+        "source_record_id": "EVE-MIRUS__GCA_001462505-1_eves|EVE_GCA_001462505_1|KQ758882_1_132249-176244_scaffold=GCA_001462505_1|KQ758882_1_start=132249_end=176244_tier=HIGH_confidence=0.8000",
+        "sequence_length": "43995"
+      },
+      {
+        "genome_id": "EVE_MIRUS__GCA-001462505-1",
+        "contig_id": "EVE_MIRUS__EVE_GCA_001462505_1",
+        "source_record_id": "EVE-MIRUS__GCA_001462505-1_eves|EVE_GCA_001462505_1|LNGJ01000552_1_766-5720_scaffold=GCA_001462505_1|LNGJ01000552_1_start=766_end=5720_tier=HIGH_confidence=0.8444",
+        "sequence_length": "4954"
+      },
+      {
+        "genome_id": "EVE_MIRUS__GCA-001462505-1",
+        "contig_id": "EVE_MIRUS__EVE_GCA_001462505_1",
+        "source_record_id": "EVE-MIRUS__GCA_001462505-1_eves|EVE_GCA_001462505_1|LNGJ01004689_1_6744-73888_scaffold=GCA_001462505_1|LNGJ01004689_1_start=6744_end=73888_tier=HIGH_confidence=0.9500",
+        "sequence_length": "67144"
+      }
+    ]
+  },
+  "note": "All original records, including quarantine, are retained in this final manifest; input counts are checked against source_summary.json.",
+  "saved_holdout_contig_count_verification": [
+    {
+      "run": "main1_10191118",
+      "source": "ARC",
+      "manifest_records": 811,
+      "merged_excess": 0,
+      "saved_contig_n": 811
+    },
+    {
+      "run": "main1_10191118",
+      "source": "BAC",
+      "manifest_records": 21365,
+      "merged_excess": 0,
+      "saved_contig_n": 21365
+    },
+    {
+      "run": "main1_10191118",
+      "source": "EUK",
+      "manifest_records": 19724,
+      "merged_excess": 0,
+      "saved_contig_n": 19724
+    },
+    {
+      "run": "main1_10191118",
+      "source": "EVE_MIRUS",
+      "manifest_records": 28,
+      "merged_excess": 12,
+      "saved_contig_n": 16
+    },
+    {
+      "run": "main1_10191118",
+      "source": "EVE_NCLDV",
+      "manifest_records": 151,
+      "merged_excess": 92,
+      "saved_contig_n": 59
+    },
+    {
+      "run": "main1_10191118",
+      "source": "MIRUS",
+      "manifest_records": 3563,
+      "merged_excess": 0,
+      "saved_contig_n": 3563
+    },
+    {
+      "run": "main1_10191118",
+      "source": "MITO",
+      "manifest_records": 66,
+      "merged_excess": 0,
+      "saved_contig_n": 66
+    },
+    {
+      "run": "main1_10191118",
+      "source": "NCLDV",
+      "manifest_records": 23375,
+      "merged_excess": 0,
+      "saved_contig_n": 23375
+    },
+    {
+      "run": "main1_10191118",
+      "source": "PHAGE",
+      "manifest_records": 259,
+      "merged_excess": 0,
+      "saved_contig_n": 259
+    },
+    {
+      "run": "main1_10191118",
+      "source": "PLASTID",
+      "manifest_records": 21,
+      "merged_excess": 0,
+      "saved_contig_n": 21
+    },
+    {
+      "run": "sub1_10191116",
+      "source": "EVE_MIRUS",
+      "manifest_records": 28,
+      "merged_excess": 12,
+      "saved_contig_n": 16
+    },
+    {
+      "run": "sub1_10191116",
+      "source": "EVE_NCLDV",
+      "manifest_records": 151,
+      "merged_excess": 92,
+      "saved_contig_n": 59
+    },
+    {
+      "run": "sub1_10191116",
+      "source": "MIRUS",
+      "manifest_records": 3563,
+      "merged_excess": 0,
+      "saved_contig_n": 3563
+    },
+    {
+      "run": "sub1_10191116",
+      "source": "NCLDV",
+      "manifest_records": 23375,
+      "merged_excess": 0,
+      "saved_contig_n": 23375
+    },
+    {
+      "run": "sub1_10191116",
+      "source": "PHAGE",
+      "manifest_records": 259,
+      "merged_excess": 0,
+      "saved_contig_n": 259
+    }
+  ]
+}

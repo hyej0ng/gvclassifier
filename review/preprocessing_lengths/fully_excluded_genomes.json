@@ -1,0 +1,274 @@
+[
+  {
+    "prefix": "BAC",
+    "genome_id": "BAC__GCA-945862325-1",
+    "excluded_contigs": 112,
+    "reasons": {
+      "cellular_genome_is_viral_host:PHAGE:exact_host_species_name": 112
+    }
+  },
+  {
+    "prefix": "BAC",
+    "genome_id": "BAC__GCA-945872365-1",
+    "excluded_contigs": 57,
+    "reasons": {
+      "cellular_genome_is_viral_host:PHAGE:exact_host_species_name": 57
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-003354225-1",
+    "excluded_contigs": 48370,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 48370
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-004431415-1",
+    "excluded_contigs": 712,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 712
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-014885115-2",
+    "excluded_contigs": 6922,
+    "reasons": {
+      "cellular_genome_is_viral_host:PHAGE:exact_host_species_name": 6922
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-016618085-1",
+    "excluded_contigs": 1621,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 1621
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-019059605-1",
+    "excluded_contigs": 104289,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 104289
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-019677205-1",
+    "excluded_contigs": 5120,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 5120
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-019918135-1",
+    "excluded_contigs": 995,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_MIRUS:exact_assembly_accession": 995
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-026770585-1",
+    "excluded_contigs": 78,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_MIRUS:exact_assembly_accession,EVE_NCLDV:exact_assembly_accession": 78
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-026770595-1",
+    "excluded_contigs": 12755,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 12755
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-032355485-1",
+    "excluded_contigs": 22396,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 22396
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-032358265-1",
+    "excluded_contigs": 27618,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 27618
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-032358315-1",
+    "excluded_contigs": 23240,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 23240
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-032361265-1",
+    "excluded_contigs": 266664,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_MIRUS:exact_assembly_accession,EVE_NCLDV:exact_assembly_accession": 266664
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-039621445-1",
+    "excluded_contigs": 2,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 2
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-048937375-1",
+    "excluded_contigs": 5,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 5
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-900088475-1",
+    "excluded_contigs": 4759,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 4759
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-964036045-2",
+    "excluded_contigs": 1,
+    "reasons": {
+      "cross_label_near_fragment": 1
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-964200195-2",
+    "excluded_contigs": 42337,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 42337
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-977862235-1",
+    "excluded_contigs": 45,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 45
+    }
+  },
+  {
+    "prefix": "EUK",
+    "genome_id": "EUK__GCA-978795795-1",
+    "excluded_contigs": 12,
+    "reasons": {
+      "cellular_genome_is_viral_host:EVE_NCLDV:exact_assembly_accession": 12
+    }
+  },
+  {
+    "prefix": "PLASTID",
+    "genome_id": "PLASTID__KC509520.1",
+    "excluded_contigs": 1,
+    "reasons": {
+      "cellular_genome_is_viral_host:PHAGE:exact_host_species_name": 1
+    }
+  },
+  {
+    "prefix": "NCLDV",
+    "genome_id": "NCLDV__IMGM3300025577_BIN267",
+    "excluded_contigs": 5,
+    "reasons": {
+      "cross_label_near_fragment": 5
+    }
+  },
+  {
+    "prefix": "NCLDV",
+    "genome_id": "NCLDV__IMGM3300027781_BIN109",
+    "excluded_contigs": 1,
+    "reasons": {
+      "canonical_sequence_label_conflict": 1
+    }
+  },
+  {
+    "prefix": "NCLDV",
+    "genome_id": "NCLDV__IMGM3300027789_BIN24",
+    "excluded_contigs": 1,
+    "reasons": {
+      "cross_label_near_fragment": 1
+    }
+  },
+  {
+    "prefix": "MIRUS",
+    "genome_id": "MIRUS__IMGM3300025874_BIN1191",
+    "excluded_contigs": 3,
+    "reasons": {
+      "cross_label_near_fragment": 3
+    }
+  },
+  {
+    "prefix": "MIRUS",
+    "genome_id": "MIRUS__IMGM3300025890_BIN597",
+    "excluded_contigs": 6,
+    "reasons": {
+      "cross_label_near_fragment": 6
+    }
+  },
+  {
+    "prefix": "EVE_NCLDV",
+    "genome_id": "EVE_NCLDV__GCA-000247585-2",
+    "excluded_contigs": 1,
+    "reasons": {
+      "n_fraction_above_0.2": 1
+    }
+  },
+  {
+    "prefix": "EVE_NCLDV",
+    "genome_id": "EVE_NCLDV__GCA-026770585-1",
+    "excluded_contigs": 1,
+    "reasons": {
+      "n_fraction_above_0.2": 1
+    }
+  },
+  {
+    "prefix": "EVE_NCLDV",
+    "genome_id": "EVE_NCLDV__IMG-2507525033",
+    "excluded_contigs": 1,
+    "reasons": {
+      "n_fraction_above_0.2": 1
+    }
+  },
+  {
+    "prefix": "EVE_NCLDV",
+    "genome_id": "EVE_NCLDV__JGI-Isogal1",
+    "excluded_contigs": 1,
+    "reasons": {
+      "n_fraction_above_0.2": 1
+    }
+  },
+  {
+    "prefix": "PHAGE",
+    "genome_id": "PHAGE__IMGVR_UViG_3300059473_002588",
+    "excluded_contigs": 1,
+    "reasons": {
+      "canonical_sequence_label_conflict": 1
+    }
+  },
+  {
+    "prefix": "PHAGE",
+    "genome_id": "PHAGE__IMGVR_UViG_GVMAG-M-3300027781-109",
+    "excluded_contigs": 1,
+    "reasons": {
+      "canonical_sequence_label_conflict": 1
+    }
+  }
+]

@@ -1,0 +1,24 @@
+Matplotlib created a temporary cache directory at /tmp/matplotlib-9vpqy07v because the default path (/home/hyejong/.config/matplotlib) is not a writable directory; it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+Prediction recomputation done
+Manifest and similarity-edge audit done
+File fingerprint audit done
+inference: 250,000 chunks checked
+inference complete: 406,682 chunks, sequence overlaps {}
+validation: 250,000 chunks checked
+validation complete: 418,195 chunks, sequence overlaps {'inference': 0}
+train: 250,000 chunks checked
+train: 500,000 chunks checked
+train: 750,000 chunks checked
+train: 1,000,000 chunks checked
+train: 1,250,000 chunks checked
+train: 1,500,000 chunks checked
+train: 1,750,000 chunks checked
+train: 2,000,000 chunks checked
+train: 2,250,000 chunks checked
+train: 2,500,000 chunks checked
+train: 2,750,000 chunks checked
+train: 3,000,000 chunks checked
+train: 3,250,000 chunks checked
+train: 3,500,000 chunks checked
+train complete: 3,602,759 chunks, sequence overlaps {'inference': 0, 'validation': 0}
+Audit complete

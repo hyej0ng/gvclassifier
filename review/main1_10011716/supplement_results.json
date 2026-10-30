@@ -1,0 +1,21 @@
+{
+  "usable_NCLDV_genus_cross_split": 0,
+  "usable_NCLDV_genus_unique": 2734,
+  "unknown_NCLDV_genus_names": [
+    "",
+    "NCLDV",
+    "g_"
+  ],
+  "NCLDV_holdout_genus_grouped_accuracy": {
+    "false": {
+      "count": 312,
+      "sum": 310,
+      "mean": 0.9935897435897436
+    },
+    "true": {
+      "count": 1237,
+      "sum": 1237,
+      "mean": 1.0
+    }
+  }
+}
